@@ -1,0 +1,11 @@
+node_modules
+.next
+.git
+
+# 機密資訊：絕對不能進 image，正式環境的環境變數由部署時注入
+.env*
+!.env.local.example
+
+*.md
+.vscode
+.claude
