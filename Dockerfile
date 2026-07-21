@@ -20,6 +20,7 @@ RUN corepack enable
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+ENV BUILD_STANDALONE=true
 RUN pnpm build
 
 # --- runner：最終部署用的乾淨 image，只放 standalone 產物 ---
