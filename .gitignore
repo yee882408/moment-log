@@ -47,5 +47,5 @@ next-env.d.ts
 # supabase CLI 本機連線快取，含 project ref/organization id，不應進版控
 supabase/.temp/
 
-# 開發過程的個人筆記/面試準備用文件，不對外公開
+# 開發過程的個人用文件，不對外公開
 concert-tracker-spec.md
