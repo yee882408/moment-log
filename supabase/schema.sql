@@ -561,6 +561,40 @@ as $$
 $$;
 
 -- ------------------------------------------------------------
+-- 8-2. Auth Hook：簽發 access token 前檢查 is_banned，被封鎖的帳號直接在
+--      這一步被拒絕，不必等應用層 signInWithPassword 成功後才另外查一次
+--      is_current_user_banned RPC，省下登入流程裡一次獨立的資料庫往返。
+--      需要在 Supabase Dashboard 的 Authentication → Hooks 手動啟用
+--      「Custom Access Token」hook 並選擇這個 function，SQL 本身無法啟用
+-- ------------------------------------------------------------
+create or replace function public.custom_access_token_hook(event jsonb)
+returns jsonb
+language plpgsql
+as $$
+declare
+	banned boolean;
+begin
+	select is_banned into banned
+	from public.profiles
+	where id = (event->>'user_id')::uuid;
+
+	if banned then
+		return jsonb_build_object(
+			'error', jsonb_build_object(
+				'http_code', 403,
+				'message', 'Account has been suspended'
+			)
+		);
+	end if;
+
+	return event;
+end;
+$$;
+
+grant execute on function public.custom_access_token_hook to supabase_auth_admin;
+revoke execute on function public.custom_access_token_hook from authenticated, anon, public;
+
+-- ------------------------------------------------------------
 -- 9-1. 統計儀表板：依月分組的場次數，Supabase JS 沒有 group-by 語法，
 --      改在資料庫端用 date_trunc + group by 聚合
 --      security invoker（預設）+ auth.uid() 過濾，只回傳呼叫者自己的資料，不繞過 RLS
