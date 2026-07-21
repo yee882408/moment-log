@@ -22,7 +22,7 @@ export function TagFilterDropdown({ selected, onApply }: TagFilterDropdownProps)
 	const [open, setOpen] = useState(false);
 	const [query, setQuery] = useState("");
 	const [draft, setDraft] = useState<TagOption[]>(selected);
-	const { results, loading } = useTagSearch(query);
+	const { results, loading } = useTagSearch(query, open);
 
 	const toggle = (tag: TagOption): void => {
 		setDraft((prev) =>

@@ -9,12 +9,22 @@ const DEBOUNCE_MS = 250;
 // 共用的標籤 autocomplete 查詢邏輯，供 TagInput（新增/編輯紀錄的標籤輸入）與
 // TagFilterDropdown（搜尋頁的標籤篩選）共用：query 為空字串時回傳建議清單
 // （使用者用過的 + 熱門標籤），有輸入文字則 debounce 查詢全站符合前綴的標籤
-export function useTagSearch(query: string): { results: TagOption[]; loading: boolean } {
+// enabled 預設 true 只在下拉選單實際開啟時才傳 true，避免元件一掛載（下拉關閉、
+// query 還是空字串）就自動打一次 getSuggestedTags() 這個較重的 Server Action，
+// 拖慢單純進入頁面（連結按鈕本身一直存在於畫面上）的體感速度
+export function useTagSearch(
+	query: string,
+	enabled: boolean = true,
+): { results: TagOption[]; loading: boolean } {
 	const [results, setResults] = useState<TagOption[]>([]);
 	const [loading, setLoading] = useState(false);
 	const requestIdRef = useRef(0);
 
 	useEffect(() => {
+		if (!enabled) {
+			return;
+		}
+
 		const requestId = ++requestIdRef.current;
 		const trimmed = query.trim();
 
@@ -36,7 +46,7 @@ export function useTagSearch(query: string): { results: TagOption[]; loading: bo
 		);
 
 		return () => clearTimeout(timer);
-	}, [query]);
+	}, [query, enabled]);
 
 	return { results, loading };
 }
