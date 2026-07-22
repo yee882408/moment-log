@@ -49,10 +49,7 @@ async function verifyTurnstileToken(token: string): Promise<boolean> {
 export async function login(
 	input: LoginInput & { turnstileToken: string },
 ): Promise<ActionResult> {
-	// TEMP: 排查登入延遲用的計時 log，確認完瓶頸後會移除
-	const t0 = Date.now();
 	const verified = await verifyTurnstileToken(input.turnstileToken);
-	console.log(`[login timing] verifyTurnstileToken: ${Date.now() - t0}ms`);
 	if (!verified) {
 		return { error: "驗證失敗，請重試" };
 	}
@@ -63,17 +60,12 @@ export async function login(
 		return { error: "資料格式錯誤" };
 	}
 
-	const t1 = Date.now();
 	const supabase = await createClient();
-	console.log(`[login timing] createClient: ${Date.now() - t1}ms`);
 
-	const t2 = Date.now();
 	const { error } = await supabase.auth.signInWithPassword({
 		email: parsed.data.email,
 		password: parsed.data.password,
 	});
-	console.log(`[login timing] signInWithPassword: ${Date.now() - t2}ms`);
-	console.log(`[login timing] total: ${Date.now() - t0}ms`);
 
 	if (error) {
 		// 帳密錯誤、或 custom_access_token_hook 拒絕已被封鎖的帳號，都會落在這裡；
