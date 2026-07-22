@@ -23,7 +23,7 @@ interface TagInputProps {
 export function TagInput({ value, onChange, id }: TagInputProps): ReactElement {
 	const [draft, setDraft] = useState("");
 	const [open, setOpen] = useState(false);
-	const { results, loading } = useTagSearch(draft);
+	const { results, loading } = useTagSearch(draft, open);
 
 	const addTag = (raw: string): void => {
 		const name = raw.trim();

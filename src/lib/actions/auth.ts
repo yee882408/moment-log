@@ -51,7 +51,7 @@ export async function login(
 ): Promise<ActionResult> {
 	const verified = await verifyTurnstileToken(input.turnstileToken);
 	if (!verified) {
-		return { error: "驗證失敗，請重新完成人機驗證" };
+		return { error: "驗證失敗，請重試" };
 	}
 
 	// 伺服器端再驗一次：前端 Zod 只是 UX，可被繞過，這層才是真防線
@@ -66,15 +66,9 @@ export async function login(
 		password: parsed.data.password,
 	});
 	if (error) {
-		return { error: "登入失敗：email 或密碼錯誤" };
-	}
-
-	// signInWithPassword 只驗證帳密，不認得 is_banned 這個自訂欄位，
-	// 登入成功後要自己補這一次檢查，避免被封鎖的人還能登入
-	const { data: banned } = await supabase.rpc("is_current_user_banned");
-	if (banned) {
-		await supabase.auth.signOut();
-		return { error: "帳號已被停用" };
+		// 帳密錯誤、或 custom_access_token_hook 拒絕已被封鎖的帳號，都會落在這裡；
+		// 用同一句訊息不特別區分，避免讓人特意去試哪個帳號被封鎖（帳號枚舉風險）
+		return { error: "登入失敗：email 或密碼錯誤，或帳號已被停用" };
 	}
 
 	redirect("/");
@@ -85,7 +79,7 @@ export async function register(
 ): Promise<ActionResult> {
 	const verified = await verifyTurnstileToken(input.turnstileToken);
 	if (!verified) {
-		return { error: "驗證失敗，請重新完成人機驗證" };
+		return { error: "驗證失敗，請重試" };
 	}
 
 	const parsed = registerSchema.safeParse(input);
@@ -111,7 +105,7 @@ export async function requestPasswordReset(
 ): Promise<ActionResult> {
 	const verified = await verifyTurnstileToken(input.turnstileToken);
 	if (!verified) {
-		return { error: "驗證失敗，請重新完成人機驗證" };
+		return { error: "驗證失敗，請重試" };
 	}
 
 	const parsed = forgotPasswordSchema.safeParse(input);

@@ -39,7 +39,7 @@ export default async function StatsPage(): Promise<ReactElement> {
 				<StatsTopList title="標籤分佈" items={stats.tagDistribution} emptyText="還沒有使用過標籤" />
 			</div>
 
-			<div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+			<div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
 				<YearOverYearCard data={stats.yearOverYear} />
 				<SpendingStatsCard data={stats.spendingStats} />
 				<IntervalStatsCard data={stats.intervalStats} />

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent, ReactElement } from "react";
 import Link from "next/link";
-import { Turnstile } from "@marsidev/react-turnstile";
+import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -33,12 +33,21 @@ export function AuthForm(): ReactElement {
 	const [mode, setMode] = useState<Mode>("login");
 	const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 	const [turnstileLoaded, setTurnstileLoaded] = useState(false);
+	const turnstileRef = useRef<TurnstileInstance>(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	// forgot 模式獨立管理：schema 只有 email 一個欄位，跟 login/register 共用
 	// 同一個 useForm 反而要為了型別相容硬湊，不如分開較單純
 	const [forgotEmail, setForgotEmail] = useState("");
 	const [forgotEmailError, setForgotEmailError] = useState<string | undefined>();
 	const [forgotSent, setForgotSent] = useState(false);
+	// Turnstile token 是一次性的，任何一次失敗的請求（不論是 token 本身失效還是
+	// 帳密錯誤）都已經把它用掉了，需要重置 widget 才能拿到新 token 再送出一次。
+	// 用一個遞增計數器（而非在 onSubmit/handleForgotSubmit 內直接呼叫
+	// turnstileRef.current?.reset()）觸發下面的 useEffect 去讀 ref：React Compiler
+	// 的 refs 規則不允許 ref 讀取出現在會被傳給 handleSubmit() 的 callback closure
+	// 鏈裡（即使包了 useCallback 也一樣，因為 handleSubmit(onSubmit) 這個呼叫本身
+	// 發生在 render 階段），effect 是唯一保證在 render 之外執行、能安全讀 ref 的地方
+	const [turnstileResetSignal, setTurnstileResetSignal] = useState(0);
 
 	const {
 		register,
@@ -55,6 +64,17 @@ export function AuthForm(): ReactElement {
 		setForgotEmailError(undefined);
 		reset();
 	};
+
+	useEffect(() => {
+		if (turnstileResetSignal === 0) {
+			return;
+		}
+		turnstileRef.current?.reset();
+		// setState 延到下一個 tick 才呼叫，避免在 effect body 內同步 setState
+		// 觸發連鎖 re-render（React Compiler 的 set-state-in-effect 規則）
+		const timer = setTimeout(() => setTurnstileToken(null), 0);
+		return () => clearTimeout(timer);
+	}, [turnstileResetSignal]);
 
 	const onSubmit = async (values: AuthFormValues): Promise<void> => {
 		if (!turnstileToken) {
@@ -78,6 +98,7 @@ export function AuthForm(): ReactElement {
 		if (result?.error) {
 			toast.error(result.error);
 			setIsSubmitting(false);
+			setTurnstileResetSignal((n) => n + 1);
 		}
 	};
 
@@ -100,6 +121,7 @@ export function AuthForm(): ReactElement {
 		setIsSubmitting(false);
 		if (result?.error) {
 			toast.error(result.error);
+			setTurnstileResetSignal((n) => n + 1);
 			return;
 		}
 		setForgotSent(true);
@@ -120,10 +142,15 @@ export function AuthForm(): ReactElement {
 				<div className="absolute inset-0 animate-pulse rounded-md bg-background" />
 			)}
 			<Turnstile
+				ref={turnstileRef}
 				siteKey={TURNSTILE_SITE_KEY}
 				// theme 預設是 "auto"，會跟著使用者系統的深色模式切換成暗色 widget，
-				// 強制用 "light" 讓它在任何系統設定下都跟頁面風格一致
-				options={{ size: "flexible", theme: "light" }}
+				// 強制用 "light" 讓它在任何系統設定下都跟頁面風格一致。
+				// refreshExpired/refreshTimeout 明確設 "auto"：實測發現無痕模式下首次
+				// 挑戰偶爾會顯示失敗，但背景評估其實還在跑，切回分頁後就自動變成功——
+				// 這兩個選項讓 widget 在 token 過期/逾時時自動重新取得，不需要使用者
+				// 手動點擊 widget 內建的重試按鈕才能繼續
+				options={{ size: "flexible", theme: "light", refreshExpired: "auto", refreshTimeout: "auto" }}
 				onWidgetLoad={() => setTurnstileLoaded(true)}
 				onSuccess={setTurnstileToken}
 				onError={() => setTurnstileToken(null)}
