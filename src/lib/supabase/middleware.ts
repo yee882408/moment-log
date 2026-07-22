@@ -24,13 +24,20 @@ export async function updateSession(request: NextRequest) {
 		}
 	);
 
+	// TEMP: 排查登入延遲用的計時 log，確認完瓶頸後會移除
+	const t0 = Date.now();
 	const {
 		data: { user },
 	} = await supabase.auth.getUser();
+	console.log(`[middleware timing] ${request.nextUrl.pathname} getUser: ${Date.now() - t0}ms`);
 
 	// 每個請求都檢查封鎖狀態，確保封鎖後既有 session 立即失效，不用等自然過期
 	if (user) {
+		const t1 = Date.now();
 		const { data: banned } = await supabase.rpc("is_current_user_banned");
+		console.log(
+			`[middleware timing] ${request.nextUrl.pathname} is_current_user_banned: ${Date.now() - t1}ms`,
+		);
 		if (banned) {
 			await supabase.auth.signOut();
 			const url = request.nextUrl.clone();
@@ -40,5 +47,6 @@ export async function updateSession(request: NextRequest) {
 		}
 	}
 
+	console.log(`[middleware timing] ${request.nextUrl.pathname} total: ${Date.now() - t0}ms`);
 	return supabaseResponse;
 }
