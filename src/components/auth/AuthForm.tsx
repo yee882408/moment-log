@@ -145,8 +145,12 @@ export function AuthForm(): ReactElement {
 				ref={turnstileRef}
 				siteKey={TURNSTILE_SITE_KEY}
 				// theme 預設是 "auto"，會跟著使用者系統的深色模式切換成暗色 widget，
-				// 強制用 "light" 讓它在任何系統設定下都跟頁面風格一致
-				options={{ size: "flexible", theme: "light" }}
+				// 強制用 "light" 讓它在任何系統設定下都跟頁面風格一致。
+				// refreshExpired/refreshTimeout 明確設 "auto"：實測發現無痕模式下首次
+				// 挑戰偶爾會顯示失敗，但背景評估其實還在跑，切回分頁後就自動變成功——
+				// 這兩個選項讓 widget 在 token 過期/逾時時自動重新取得，不需要使用者
+				// 手動點擊 widget 內建的重試按鈕才能繼續
+				options={{ size: "flexible", theme: "light", refreshExpired: "auto", refreshTimeout: "auto" }}
 				onWidgetLoad={() => setTurnstileLoaded(true)}
 				onSuccess={setTurnstileToken}
 				onError={() => setTurnstileToken(null)}
