@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { getRecordTags, getTagsByRecordIds, type TagOption } from "@/lib/data/tags";
 import { searchConcertRecordIds, reorderByKeywordSearch } from "@/lib/data/concertRecordSearch";
@@ -206,7 +207,9 @@ export async function getPublicReviewsByAuthor(
 }
 
 // 單篇公開心得（唯讀）。非公開或不存在 → null
-export async function getPublicReviewById(
+// 用 cache() 包裝：同一次 request 內 generateMetadata 與頁面本體都會呼叫這支，
+// 去重成一次查詢，避免重複打兩次資料庫
+export const getPublicReviewById = cache(async function getPublicReviewById(
 	id: string,
 ): Promise<PublicReviewDetail | null> {
 	const supabase = await createClient();
@@ -243,7 +246,7 @@ export async function getPublicReviewById(
 		author_avatar_url: data.profiles?.avatar_url ?? null,
 		tags,
 	};
-}
+});
 
 const RELATED_LIMIT = 3;
 

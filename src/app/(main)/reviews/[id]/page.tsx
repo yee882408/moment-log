@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import type { ReactElement } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -18,6 +19,36 @@ import { AuthorAvatar } from "@/components/reviews/AuthorAvatar";
 interface PageProps {
 	params: Promise<{ id: string }>;
 	searchParams: Promise<{ from?: string }>;
+}
+
+const DESCRIPTION_LENGTH = 100;
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+	const { id } = await params;
+	const review = await getPublicReviewById(id);
+	if (!review) {
+		return {};
+	}
+
+	const title = `${review.title} - ${review.artist}`;
+	const description = review.review
+		? review.review.slice(0, DESCRIPTION_LENGTH)
+		: `${review.author ?? "匿名"}在 ${review.venue_name} 的 ${review.artist} 演唱會紀錄`;
+
+	return {
+		title,
+		description,
+		openGraph: {
+			title,
+			description,
+			images: review.cover_image_url ? [review.cover_image_url] : undefined,
+		},
+		twitter: {
+			title,
+			description,
+			images: review.cover_image_url ? [review.cover_image_url] : undefined,
+		},
+	};
 }
 
 export default async function ReviewDetailPage({ params, searchParams }: PageProps): Promise<ReactElement> {
