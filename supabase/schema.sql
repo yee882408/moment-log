@@ -566,10 +566,15 @@ $$;
 --      is_current_user_banned RPC，省下登入流程裡一次獨立的資料庫往返。
 --      需要在 Supabase Dashboard 的 Authentication → Hooks 手動啟用
 --      「Custom Access Token」hook 並選擇這個 function，SQL 本身無法啟用
+--      security definer：Supabase Auth 是用 supabase_auth_admin 這個角色呼叫
+--      這個 function，它不在 profiles 表的 RLS 允許範圍內，若不用 definer
+--      身份執行會在查詢當下直接噴 42501 permission denied，導致所有登入
+--      （不只被封鎖的帳號）都失敗——這是實測踩到的坑，親測驗證過
 -- ------------------------------------------------------------
 create or replace function public.custom_access_token_hook(event jsonb)
 returns jsonb
 language plpgsql
+security definer set search_path = ''
 as $$
 declare
 	banned boolean;
