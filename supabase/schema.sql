@@ -28,9 +28,9 @@ create table public.profiles (
 -- concerts：管理員維護的「範本」
 create table public.concerts (
 	id uuid primary key default gen_random_uuid(),
-	title text not null,
-	artist text not null,
-	venue_name text not null,
+	title text not null check (char_length(title) <= 200),
+	artist text not null check (char_length(artist) <= 200),
+	venue_name text not null check (char_length(venue_name) <= 200),
 	venue_lat double precision not null, -- 經 Nominatim geocoding 取得
 	venue_lng double precision not null,
 	date date not null,
@@ -45,9 +45,9 @@ create table public.concert_records (
 	id uuid primary key default gen_random_uuid(),
 	user_id uuid not null references public.profiles(id) on delete cascade,
 	template_id uuid references public.concerts(id) on delete set null, -- 選填，記錄來源
-	title text not null,
-	artist text not null,
-	venue_name text not null,
+	title text not null check (char_length(title) <= 200),
+	artist text not null check (char_length(artist) <= 200),
+	venue_name text not null check (char_length(venue_name) <= 200),
 	venue_lat double precision, -- 選填，手動紀錄可不附座標
 	venue_lng double precision,
 	date date not null,
@@ -85,7 +85,7 @@ create index concert_records_search_vector_idx on public.concert_records using g
 -- tags：全站共用標籤詞彙，使用者可自由新增；name 全站唯一（不分大小寫比對交給查詢層處理）
 create table public.tags (
 	id uuid primary key default gen_random_uuid(),
-	name text not null unique,
+	name text not null unique check (char_length(name) <= 20),
 	created_at timestamptz not null default now()
 );
 
@@ -625,9 +625,9 @@ $$;
 create table public.spot_lists (
 	id uuid primary key default gen_random_uuid(),
 	user_id uuid not null references public.profiles(id) on delete cascade,
-	title text not null,
-	artist text not null,
-	description text,
+	title text not null check (char_length(title) <= 200),
+	artist text not null check (char_length(artist) <= 200),
+	description text check (description is null or char_length(description) <= 2000),
 	is_public boolean not null default false,
 	created_at timestamptz not null default now()
 );
@@ -637,11 +637,11 @@ create index spot_lists_user_idx on public.spot_lists (user_id);
 create table public.spot_list_items (
 	id uuid primary key default gen_random_uuid(),
 	list_id uuid not null references public.spot_lists(id) on delete cascade,
-	place_name text not null,
+	place_name text not null check (char_length(place_name) <= 200),
 	place_lat double precision not null,
 	place_lng double precision not null,
 	place_type text check (place_type in ('restaurant', 'attraction', 'other')),
-	description text,
+	description text check (description is null or char_length(description) <= 2000),
 	cover_image_url text,
 	created_at timestamptz not null default now()
 );
@@ -751,3 +751,33 @@ select
 	(select count(*) from public.spot_list_items i where i.list_id = l.id) as item_count,
 	(select count(*) from public.spot_list_likes k where k.list_id = l.id) as like_count
 from public.spot_lists l;
+
+-- ------------------------------------------------------------
+-- 11. migration：補上 title/artist/venue_name/place_name/description/tags.name
+--     的長度上限 check constraint（資安稽核發現這些欄位在應用層 Zod 都沒有
+--     .max()，資料庫層也沒有對應限制，跟 review/comment.body/tags 既有的做法
+--     不一致，可被繞過表單直接呼叫 Server Action 塞入任意長度字串）
+--     上面的 create table 定義已經內建這些 constraint，這段只給「資料庫已經
+--     建過表」的既有環境執行用（新環境從頭跑這份 schema.sql 不需要再跑這段）
+-- ------------------------------------------------------------
+alter table public.concerts
+	add constraint concerts_title_len check (char_length(title) <= 200),
+	add constraint concerts_artist_len check (char_length(artist) <= 200),
+	add constraint concerts_venue_name_len check (char_length(venue_name) <= 200);
+
+alter table public.concert_records
+	add constraint concert_records_title_len check (char_length(title) <= 200),
+	add constraint concert_records_artist_len check (char_length(artist) <= 200),
+	add constraint concert_records_venue_name_len check (char_length(venue_name) <= 200);
+
+alter table public.tags
+	add constraint tags_name_len check (char_length(name) <= 20);
+
+alter table public.spot_lists
+	add constraint spot_lists_title_len check (char_length(title) <= 200),
+	add constraint spot_lists_artist_len check (char_length(artist) <= 200),
+	add constraint spot_lists_description_len check (description is null or char_length(description) <= 2000);
+
+alter table public.spot_list_items
+	add constraint spot_list_items_place_name_len check (char_length(place_name) <= 200),
+	add constraint spot_list_items_description_len check (description is null or char_length(description) <= 2000);

@@ -4,8 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { commentSchema, type CommentInput } from "@/lib/validation/comment";
 import { getCommentsByRecordId, type CommentsPage } from "@/lib/data/comments";
-import { createNotification } from "@/lib/actions/notifications";
-import type { ActionResult } from "@/lib/actions/types";
+import { createNotification } from "@/lib/data/notifications";
+import { toGenericActionError, type ActionResult } from "@/lib/actions/types";
 
 export type CreateCommentResult = { error: string } | { totalPages: number };
 
@@ -36,7 +36,7 @@ export async function createComment(
 		.select("id")
 		.single();
 	if (error) {
-		return { error: error.message };
+		return toGenericActionError(error, "createComment");
 	}
 
 	const { data: record } = await supabase
@@ -87,7 +87,7 @@ export async function deleteComment(
 		.eq("id", commentId)
 		.eq("user_id", user.id);
 	if (error) {
-		return { error: error.message };
+		return toGenericActionError(error, "deleteComment");
 	}
 
 	revalidatePath(`/reviews/${recordId}`);

@@ -20,6 +20,48 @@ export interface NotificationItem {
 
 const LIST_LIMIT = 20;
 
+interface CreateNotificationInput {
+	userId: string; // 通知的接收者
+	actorId: string; // 觸發這則通知的人（呼叫端必須傳目前登入者的 id，這裡會再驗證一次）
+	type: NotificationType;
+	recordId?: string;
+	commentId?: string;
+}
+
+// 供 follows.ts/likes.ts/comments.ts 的成功分支呼叫。刻意不在 actions/ 底下（不加
+// "use server"）：這支函式信任呼叫端傳入的 actorId 代表「目前登入者」，若放在
+// actions/ 會被 Next.js 視為可從前端直接呼叫的 Server Action，任何人都能繞過
+// follows/likes/comments 的流程直接呼叫、帶入任意 actorId 對任意 userId 灌發假通知
+// （RLS 只擋得住冒充別人的 actor_id，擋不住用自己身分對任意人狂發）。這裡額外驗證
+// actorId 必須等於當下 session 的使用者，即使日後這支被誤搬到 actions/ 底下，
+// 也不會讓呼叫端能冒充別人發送通知
+// 自己操作自己的不通知；失敗只吞掉不往外拋——通知寫入失敗不該讓按讚/留言/追蹤本身失敗
+export async function createNotification(input: CreateNotificationInput): Promise<void> {
+	if (input.userId === input.actorId) {
+		return;
+	}
+
+	const supabase = await createClient();
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+	if (!user || user.id !== input.actorId) {
+		console.error("建立通知失敗：actorId 與目前登入者不符");
+		return;
+	}
+
+	const { error } = await supabase.from("notifications").insert({
+		user_id: input.userId,
+		actor_id: input.actorId,
+		type: input.type,
+		record_id: input.recordId ?? null,
+		comment_id: input.commentId ?? null,
+	});
+	if (error) {
+		console.error(`建立通知失敗（type=${input.type}）：${error.message}`);
+	}
+}
+
 // Popover 清單用：join profiles（actor 顯示名/頭像）與 concert_records（標題），
 // 讓 UI 不用再各自查一次
 export async function getNotifications(userId: string): Promise<NotificationItem[]> {

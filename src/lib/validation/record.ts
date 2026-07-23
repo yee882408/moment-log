@@ -3,9 +3,9 @@ import { optionalNumber } from "@/lib/validation/utils";
 
 // 新增／編輯紀錄共用一份 schema
 export const recordSchema = z.object({
-	title: z.string().min(1, "請輸入標題"),
-	artist: z.string().min(1, "請輸入藝人"),
-	venueName: z.string().min(1, "請輸入場館名稱"),
+	title: z.string().min(1, "請輸入標題").max(200, "標題不可超過 200 字"),
+	artist: z.string().min(1, "請輸入藝人").max(200, "藝人不可超過 200 字"),
+	venueName: z.string().min(1, "請輸入場館名稱").max(200, "場館名稱不可超過 200 字"),
 	venueLat: optionalNumber(z.number()), // 由 geocoding 搜尋帶入，選填
 	venueLng: optionalNumber(z.number()),
 	date: z.string().min(1, "請選擇日期"), // yyyy-mm-dd

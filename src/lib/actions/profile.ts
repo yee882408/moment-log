@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { profileSchema, type ProfileInput } from "@/lib/validation/profile";
-import type { ActionResult } from "@/lib/actions/types";
+import { toGenericActionError, type ActionResult } from "@/lib/actions/types";
 
 export async function updateProfile(
 	input: ProfileInput & { avatarUrl?: string },
@@ -29,7 +29,7 @@ export async function updateProfile(
 		})
 		.eq("id", user.id);
 	if (error) {
-		return { error: error.message };
+		return toGenericActionError(error, "updateProfile");
 	}
 
 	revalidatePath("/profile");

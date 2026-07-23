@@ -11,7 +11,7 @@ import {
 	type RecordSort,
 } from "@/lib/data/records";
 import { upsertTagsByName } from "@/lib/actions/tags";
-import type { ActionResult } from "@/lib/actions/types";
+import { toGenericActionError, type ActionResult } from "@/lib/actions/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 
@@ -29,7 +29,7 @@ async function syncRecordTags(
 			.delete()
 			.eq("record_id", recordId);
 		if (deleteError) {
-			return { error: deleteError.message };
+			return toGenericActionError(deleteError, "syncRecordTags.delete");
 		}
 	}
 
@@ -46,7 +46,7 @@ async function syncRecordTags(
 		.from("concert_record_tags")
 		.insert(tags.map((tag) => ({ record_id: recordId, tag_id: tag.id })));
 	if (insertError) {
-		return { error: insertError.message };
+		return toGenericActionError(insertError, "syncRecordTags.insert");
 	}
 	return undefined;
 }
@@ -115,7 +115,7 @@ export async function createRecord(input: RecordInput): Promise<ActionResult> {
 		.single();
 
 	if (error) {
-		return { error: error.message };
+		return toGenericActionError(error, "createRecord");
 	}
 
 	const tagResult = await syncRecordTags(supabase, data.id, parsed.data.tags, "insert");
@@ -152,7 +152,7 @@ export async function updateRecord(
 		.eq("user_id", user.id);
 
 	if (error) {
-		return { error: error.message };
+		return toGenericActionError(error, "updateRecord");
 	}
 
 	const tagResult = await syncRecordTags(supabase, id, parsed.data.tags, "replace");
@@ -185,7 +185,7 @@ export async function deleteRecord(id: string): Promise<ActionResult> {
 		.eq("user_id", user.id);
 
 	if (error) {
-		return { error: error.message };
+		return toGenericActionError(error, "deleteRecord");
 	}
 
 	revalidatePath("/concerts");
