@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getSpotListById } from "@/lib/data/spots";
 import { getSpotListLikeState } from "@/lib/data/spotListLikes";
+import { JsonLd } from "@/lib/seo/JsonLd";
+import { buildSpotListJsonLd } from "@/lib/seo/schemas";
 import { SpotItemsPanel } from "@/components/spots/SpotItemsPanel";
 import { SpotListLikeButton } from "@/components/spots/SpotListLikeButton";
 import { DeleteSpotListButton } from "@/components/spots/DeleteSpotListButton";
@@ -31,6 +33,7 @@ export default async function SpotListDetailPage({ params }: PageProps): Promise
 
 	return (
 		<main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 p-6">
+			{list.is_public && <JsonLd data={buildSpotListJsonLd(list)} />}
 			<div className="flex items-center justify-between">
 				<Link href="/spots" className="text-sm text-muted-foreground hover:underline">
 					← 返回列表

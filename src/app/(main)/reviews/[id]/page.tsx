@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getPublicReviewById, getRelatedReviewsByArtist } from "@/lib/data/reviews";
 import { getLikeState } from "@/lib/data/likes";
 import { getCommentsByRecordId } from "@/lib/data/comments";
+import { JsonLd } from "@/lib/seo/JsonLd";
+import { buildReviewJsonLd } from "@/lib/seo/schemas";
 import { Card } from "@/components/ui/Card";
 import { Badge, StarRating } from "@/components/ui/Badge";
 import { CoverImage } from "@/components/ui/CoverImage";
@@ -76,6 +78,7 @@ export default async function ReviewDetailPage({ params, searchParams }: PagePro
 
 	return (
 		<main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-10 p-6">
+			<JsonLd data={buildReviewJsonLd(review)} />
 			<div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
 				<Link href={backHref} className="text-sm text-muted-foreground hover:underline">
 					{backLabel}
