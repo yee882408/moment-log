@@ -9,9 +9,7 @@ export default async function Home(): Promise<ReactElement> {
 	return (
 		<main className="flex flex-1 flex-col items-center justify-center gap-6 bg-linear-to-b from-indigo-50 to-white px-4 py-24 text-center">
 			<h1 className="text-3xl font-semibold text-foreground">🎤 moment-log</h1>
-			<p className="text-muted-foreground">
-				{profile ? `歡迎回來，${profile.displayName || profile.email}` : "記錄每一場演唱會的回憶"}
-			</p>
+			<p className="text-muted-foreground">記錄每一場演唱會的回憶</p>
 			<div className="flex flex-wrap items-center justify-center gap-3">
 				{profile ? (
 					<Button asChild>
