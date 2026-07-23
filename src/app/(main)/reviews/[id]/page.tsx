@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/Button";
 import { LikeButton } from "@/components/reviews/LikeButton";
 import { ShareCardButton } from "@/components/reviews/ShareCardButton";
 import { CommentSection } from "@/components/reviews/CommentSection";
-import { ReviewGrid } from "@/components/reviews/ReviewGrid";
+import { AuthorReviewGrid } from "@/components/reviews/AuthorReviewGrid";
 import { AuthorAvatar } from "@/components/reviews/AuthorAvatar";
 
 interface PageProps {
@@ -174,22 +174,7 @@ export default async function ReviewDetailPage({ params, searchParams }: PagePro
 			{relatedReviews.length > 0 && (
 				<section className="flex flex-col gap-3">
 					<h2 className="text-sm font-semibold text-foreground">{review.artist} 的其他心得</h2>
-					<ReviewGrid
-						reviews={relatedReviews}
-						buildHref={(r) => `/reviews/${r.id}`}
-						renderFooter={(r) => (
-							<>
-								<Link
-									href={`/users/${r.user_id}`}
-									className="flex items-center gap-2 hover:underline"
-								>
-									<AuthorAvatar author={r.author} avatarUrl={r.author_avatar_url} />
-									<span className="line-clamp-1">{r.author ?? "匿名"}</span>
-								</Link>
-								<span className="ml-auto shrink-0">♥ {r.like_count}</span>
-							</>
-						)}
-					/>
+					<AuthorReviewGrid reviews={relatedReviews} />
 				</section>
 			)}
 		</main>

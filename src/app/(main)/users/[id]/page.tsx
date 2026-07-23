@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getPublicReviewsByAuthor } from "@/lib/data/reviews";
 import { getFollowState } from "@/lib/data/follows";
 import { getPublicProfileById } from "@/lib/data/profile";
-import { ReviewGrid } from "@/components/reviews/ReviewGrid";
+import { LikeCountReviewGrid } from "@/components/reviews/LikeCountReviewGrid";
 import { AuthorAvatar } from "@/components/reviews/AuthorAvatar";
 import { Pagination } from "@/components/ui/Pagination";
 import { FollowButton } from "@/components/users/FollowButton";
@@ -68,12 +68,7 @@ export default async function UserProfilePage({
 				</p>
 			)}
 
-			<ReviewGrid
-				reviews={reviews}
-				maxItemsPerPage={9}
-				buildHref={(r) => `/reviews/${r.id}`}
-				renderFooter={(r) => <span>♥ {r.like_count}</span>}
-			/>
+			<LikeCountReviewGrid reviews={reviews} maxItemsPerPage={9} />
 
 			<Pagination
 				currentPage={page}
