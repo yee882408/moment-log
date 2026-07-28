@@ -4,7 +4,6 @@ import { getAdminUsers } from "@/lib/data/admin-users";
 import { SetUserRoleButton } from "@/components/admin/SetUserRoleButton";
 import { SetUserBannedButton } from "@/components/admin/SetUserBannedButton";
 import { AuthorAvatar } from "@/components/reviews/AuthorAvatar";
-import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Pagination } from "@/components/ui/Pagination";
 
@@ -26,26 +25,33 @@ export default async function AdminUsersPage({
 
 	return (
 		<main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-6">
-			<div className="flex items-center gap-2">
-				<h1 className="text-xl font-semibold text-foreground">使用者管理</h1>
-				<Badge variant="admin">管理後台</Badge>
+			<div>
+				<span className="flex items-center gap-2 text-xs font-bold tracking-wider text-primary uppercase">
+					<span className="h-px w-4.5 bg-primary" />
+					管理後台
+				</span>
+				<div className="mt-1 flex items-center gap-2">
+					<h1 className="text-2xl font-semibold tracking-tight text-foreground">使用者管理</h1>
+					<Badge variant="admin">管理後台</Badge>
+				</div>
 			</div>
 
-			<ul className="flex flex-col gap-3">
-				{users.map((u) => (
-					<li key={u.id}>
-						<Card className="flex flex-col flex-wrap items-start justify-between gap-4 sm:flex-row sm:items-center">
+			<div className="relative rounded-sm border border-border bg-card">
+				<div className="pointer-events-none absolute inset-1.5 rounded-xs border border-dashed border-border opacity-60" />
+				<ul className="relative flex flex-col">
+					{users.map((u) => (
+						<li
+							key={u.id}
+							className="flex flex-col flex-wrap items-start justify-between gap-4 border-b border-border p-4 last:border-b-0 sm:flex-row sm:items-center"
+						>
 							<div className="flex items-center gap-3">
-								<AuthorAvatar
-									author={u.displayName}
-									avatarUrl={u.avatarUrl}
-									sizeClass="h-10 w-10"
-								/>
+								<AuthorAvatar author={u.displayName} avatarUrl={u.avatarUrl} sizeClass="h-10 w-10" />
 								<div className="flex flex-col">
 									<span className="flex items-center gap-2 font-medium text-foreground">
 										{u.displayName}
+										{u.role === "admin" && <Badge variant="admin">管理員</Badge>}
 										{u.isBanned && (
-											<span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600">
+											<span className="rounded-full bg-red-50 px-2 py-0.5 text-2xs font-medium text-red-600">
 												已停用
 											</span>
 										)}
@@ -53,21 +59,16 @@ export default async function AdminUsersPage({
 									<span className="text-xs text-muted-foreground">{u.email}</span>
 								</div>
 							</div>
-							<div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
-								<span className="text-xs text-muted-foreground">
-									{u.role === "admin" ? "管理員" : "一般使用者"}
-								</span>
-								{u.id !== user?.id && (
-									<div className="flex flex-1 flex-wrap items-center gap-2 sm:flex-none">
-										<SetUserRoleButton userId={u.id} currentRole={u.role} />
-										<SetUserBannedButton userId={u.id} isBanned={u.isBanned} />
-									</div>
-								)}
-							</div>
-						</Card>
-					</li>
-				))}
-			</ul>
+							{u.id !== user?.id && (
+								<div className="flex w-full flex-wrap items-center gap-2 pl-13 sm:w-auto sm:pl-0">
+									<SetUserRoleButton userId={u.id} currentRole={u.role} />
+									<SetUserBannedButton userId={u.id} isBanned={u.isBanned} />
+								</div>
+							)}
+						</li>
+					))}
+				</ul>
+			</div>
 
 			<Pagination
 				currentPage={page}

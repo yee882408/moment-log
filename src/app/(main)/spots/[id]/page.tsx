@@ -9,8 +9,6 @@ import { buildSpotListJsonLd } from "@/lib/seo/schemas";
 import { SpotItemsPanel } from "@/components/spots/SpotItemsPanel";
 import { SpotListLikeButton } from "@/components/spots/SpotListLikeButton";
 import { DeleteSpotListButton } from "@/components/spots/DeleteSpotListButton";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
 
 interface PageProps {
 	params: Promise<{ id: string }>;
@@ -32,44 +30,63 @@ export default async function SpotListDetailPage({ params }: PageProps): Promise
 	const likeState = await getSpotListLikeState(id, user?.id ?? null);
 
 	return (
-		<main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 p-6">
+		<main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4.5 p-6">
 			{list.is_public && <JsonLd data={buildSpotListJsonLd(list)} />}
-			<div className="flex items-center justify-between">
-				<Link href="/spots" className="text-sm text-muted-foreground hover:underline">
+			<div className="flex items-center justify-between text-sm">
+				<Link href="/spots" className="text-muted-foreground hover:text-foreground">
 					← 返回列表
 				</Link>
 				{canEdit && (
-					<div className="flex gap-2">
-						<Button asChild variant="secondary">
-							<Link href={`/spots/${list.id}/edit`}>編輯</Link>
-						</Button>
-						<DeleteSpotListButton listId={list.id} />
+					<div className="flex items-center gap-4.5">
+						<Link href={`/spots/${list.id}/edit`} className="text-foreground hover:underline">
+							編輯
+						</Link>
+						<DeleteSpotListButton
+							listId={list.id}
+							className="border-0 bg-transparent p-0 text-destructive hover:bg-transparent hover:underline"
+						/>
 					</div>
 				)}
 			</div>
 
-			<header className="flex flex-col gap-2">
-				<div className="flex items-center gap-2">
-					<h1 className="text-2xl font-semibold text-foreground">{list.title}</h1>
-					{list.is_public && <Badge variant="public">公開</Badge>}
-				</div>
-				<p className="text-muted-foreground">{list.artist}</p>
-				{list.description && (
-					<p className="whitespace-pre-wrap text-sm text-foreground">{list.description}</p>
-				)}
-			</header>
+			{/* 戳章護照封面：延續 /spots 列表卡片的視覺語言（虛線內框、右上角旋轉印章），
+			    把標題/藝人/描述/讚收在同一塊卡片內 */}
+			<div className="relative rounded-sm border border-border bg-card p-6">
+				<div className="pointer-events-none absolute inset-1.5 rounded-sm border border-dashed border-border" />
 
-			{user ? (
-				<SpotListLikeButton
-					listId={list.id}
-					initialCount={likeState.count}
-					initialLiked={likeState.likedByMe}
-				/>
-			) : (
-				<Button asChild variant="secondary" className="justify-start">
-					<Link href="/login">讚 · {likeState.count}（請登入）</Link>
-				</Button>
-			)}
+				{list.is_public && (
+					<span className="absolute top-5 right-6 flex h-14.5 w-14.5 rotate-[8deg] items-center justify-center rounded-full border-2 border-success text-center text-2xs leading-tight font-extrabold tracking-wide text-success opacity-90">
+						VISITED
+						<br />✓ PUBLIC
+					</span>
+				)}
+
+				<span className="block text-xs font-bold tracking-wider text-primary uppercase">
+					{list.artist}
+				</span>
+				<h1 className="mt-1.5 mr-18 text-2xl leading-tight font-semibold text-foreground">
+					{list.title}
+				</h1>
+				{list.description && (
+					<p className="mt-2 max-w-[60ch] text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground">
+						{list.description}
+					</p>
+				)}
+
+				<div className="mt-3.5 flex items-center gap-3.5 border-t border-dashed border-border pt-3.5">
+					{user ? (
+						<SpotListLikeButton
+							listId={list.id}
+							initialCount={likeState.count}
+							initialLiked={likeState.likedByMe}
+						/>
+					) : (
+						<Link href="/login" className="text-sm text-muted-foreground hover:underline">
+							讚 · {likeState.count}（請登入）
+						</Link>
+					)}
+				</div>
+			</div>
 
 			<SpotItemsPanel
 				listId={list.id}

@@ -1,14 +1,17 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist_Mono, Noto_Sans_TC } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { Toaster } from "sonner";
 import "./globals.css";
 
-const geistSans = Geist({
-	variable: "--font-geist-sans",
+// 全站唯一字體：中文顯示穩定、字重齊全，取代原本 Geist Sans + 各處手刻 Georgia 的混用狀態
+const notoSansTC = Noto_Sans_TC({
+	variable: "--font-noto-sans-tc",
 	subsets: ["latin"],
+	weight: ["400", "500", "600", "700", "800"],
 });
 
+// 保留 Geist Mono：票根風卡片的等距字體效果（ReviewGrid 票號）用途，非內文字體
 const geistMono = Geist_Mono({
 	variable: "--font-geist-mono",
 	subsets: ["latin"],
@@ -48,7 +51,7 @@ export default function RootLayout({
 	return (
 		<html
 			lang="zh-TW"
-			className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+			className={`${notoSansTC.variable} ${geistMono.variable} h-full antialiased`}
 		>
 			<body className="min-h-full flex flex-col">
 				{children}

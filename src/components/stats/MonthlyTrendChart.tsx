@@ -2,7 +2,6 @@
 
 import type { ReactElement } from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { Card } from "@/components/ui/Card";
 import type { MonthlyCount } from "@/lib/data/stats";
 
 interface MonthlyTrendChartProps {
@@ -19,29 +18,41 @@ function formatMonth(month: string): string {
 export function MonthlyTrendChart({ data }: MonthlyTrendChartProps): ReactElement {
 	if (data.length === 0) {
 		return (
-			<Card className="flex flex-col gap-3">
-				<h2 className="text-sm font-semibold text-foreground">每月場次趨勢</h2>
+			<div className="relative rounded-sm border border-border bg-card p-5">
+				<div className="pointer-events-none absolute inset-1.5 rounded-xs border border-dashed border-border opacity-60" />
+				<span className="mb-4 block text-xs font-bold tracking-wider text-primary uppercase">
+					每月場次趨勢
+				</span>
 				<p className="text-sm text-muted-foreground">還沒有足夠的紀錄可以繪製趨勢圖</p>
-			</Card>
+			</div>
 		);
 	}
 
 	const chartData = data.map((d) => ({ month: formatMonth(d.month), count: d.count }));
 
 	return (
-		<Card className="flex flex-col gap-3">
-			<h2 className="text-sm font-semibold text-foreground">每月場次趨勢</h2>
+		<div className="relative rounded-sm border border-border bg-card p-5">
+			<div className="pointer-events-none absolute inset-1.5 rounded-xs border border-dashed border-border opacity-60" />
+			<span className="mb-4 block text-xs font-bold tracking-wider text-primary uppercase">
+				每月場次趨勢
+			</span>
 			<div className="h-64 w-full">
 				<ResponsiveContainer width="100%" height="100%">
 					<BarChart data={chartData}>
-						<CartesianGrid strokeDasharray="3 3" vertical={false} />
-						<XAxis dataKey="month" fontSize={12} />
-						<YAxis allowDecimals={false} fontSize={12} width={30} />
-						<Tooltip />
-						<Bar dataKey="count" name="場次" fill="var(--color-primary)" radius={[4, 4, 0, 0]} />
+						<CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+						<XAxis dataKey="month" fontSize={12} stroke="var(--color-muted-foreground)" />
+						<YAxis allowDecimals={false} fontSize={12} width={28} stroke="var(--color-muted-foreground)" />
+						<Tooltip
+							contentStyle={{
+								borderRadius: 4,
+								border: "1px solid var(--color-border)",
+								fontSize: 12,
+							}}
+						/>
+						<Bar dataKey="count" name="場次" fill="var(--color-primary)" radius={[3, 3, 0, 0]} maxBarSize={34} />
 					</BarChart>
 				</ResponsiveContainer>
 			</div>
-		</Card>
+		</div>
 	);
 }
