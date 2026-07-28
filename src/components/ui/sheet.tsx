@@ -55,17 +55,16 @@ function SheetContent({
 			<SheetPrimitive.Content
 				data-slot="sheet-content"
 				className={cn(
-					"fixed z-1100 flex flex-col gap-4 bg-card p-6 shadow-lg transition ease-in-out",
-					"data-[state=closed]:duration-300 data-[state=open]:duration-500",
-					"data-[state=closed]:animate-out data-[state=open]:animate-in",
+					// sheet-content--{side} 提供進出場動畫（見 globals.css：Tailwind v4 沒有內建
+					// animate-in/slide-in-from-* 這類 class，之前掛的都是無效 class）
+					"sheet-content fixed z-1100 flex flex-col gap-4 bg-card p-6 shadow-lg",
 					side === "right" &&
-						"inset-y-0 right-0 h-full w-3/4 border-l border-border data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm",
+						"sheet-content--right inset-y-0 right-0 h-full w-3/4 border-l border-border sm:max-w-sm",
 					side === "left" &&
-						"inset-y-0 left-0 h-full w-3/4 border-r border-border data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
-					side === "top" &&
-						"inset-x-0 top-0 h-auto border-b border-border data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
+						"sheet-content--left inset-y-0 left-0 h-full w-3/4 border-r border-border sm:max-w-sm",
+					side === "top" && "sheet-content--top inset-x-0 top-0 h-auto border-b border-border",
 					side === "bottom" &&
-						"inset-x-0 bottom-0 h-auto border-t border-border data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
+						"sheet-content--bottom inset-x-0 bottom-0 h-auto border-t border-border",
 					className,
 				)}
 				{...props}
