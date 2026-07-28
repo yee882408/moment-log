@@ -64,6 +64,9 @@ function mapPublicReviewRow(row: PublicReviewRow, tags: TagOption[]): PublicRevi
 export interface PublicReviewDetail extends Omit<PublicReview, "like_count"> {
 	review: string | null;
 	spotify_playlist_id: string | null;
+	// 當天實際坐的座位/區域，選填；跟 venue_name 一樣視為公開資訊（不像 ticket_price
+	// 那樣列入隱私排除），只在詳情頁需要，列表頁 PublicReview 不查這個欄位
+	seat_info: string | null;
 }
 
 interface ReviewsPage {
@@ -216,7 +219,7 @@ export const getPublicReviewById = cache(async function getPublicReviewById(
 	const { data, error } = await supabase
 		.from("concert_records")
 		.select(
-			"id, user_id, title, artist, venue_name, date, rating, review, spotify_playlist_id, cover_image_url, created_at, profiles(display_name, avatar_url)",
+			"id, user_id, title, artist, venue_name, date, seat_info, rating, review, spotify_playlist_id, cover_image_url, created_at, profiles(display_name, avatar_url)",
 		)
 		.eq("id", id)
 		.eq("is_public", true)
@@ -237,6 +240,7 @@ export const getPublicReviewById = cache(async function getPublicReviewById(
 		artist: data.artist,
 		venue_name: data.venue_name,
 		date: data.date,
+		seat_info: data.seat_info,
 		rating: data.rating,
 		review: data.review,
 		spotify_playlist_id: data.spotify_playlist_id,
