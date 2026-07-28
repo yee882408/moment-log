@@ -20,7 +20,6 @@ export default async function ProfilePage(): Promise<ReactElement> {
 		<main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-6">
 			<div>
 				<span className="flex items-center gap-2 text-xs font-bold tracking-wider text-primary uppercase">
-					<span className="h-px w-4.5 bg-primary" />
 					帳號設定
 				</span>
 				<h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground">個人檔案</h1>

@@ -22,7 +22,6 @@ export default async function AdminConcertsPage({
 			<div className="flex flex-col flex-wrap items-start justify-between gap-3 sm:flex-row sm:items-center">
 				<div>
 					<span className="flex items-center gap-2 text-xs font-bold tracking-wider text-primary uppercase">
-						<span className="h-px w-4.5 bg-primary" />
 						演唱會範本
 					</span>
 					<div className="mt-1 flex items-center gap-2">

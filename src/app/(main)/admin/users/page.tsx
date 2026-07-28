@@ -27,7 +27,6 @@ export default async function AdminUsersPage({
 		<main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-6">
 			<div>
 				<span className="flex items-center gap-2 text-xs font-bold tracking-wider text-primary uppercase">
-					<span className="h-px w-4.5 bg-primary" />
 					管理後台
 				</span>
 				<div className="mt-1 flex items-center gap-2">

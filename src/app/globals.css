@@ -126,3 +126,58 @@ p.article-drop::first-letter {
   border-top: none;
   border-left: none;
 }
+
+/* Sheet（漢堡選單抽屜）進出場動畫：專案沒有裝 tailwindcss-animate，Tailwind v4
+   核心也未內建 animate-in/slide-in-from-* 這類 class，先前掛在 SheetContent 上的
+   同名 class 其實都是無效 class（不對應任何 CSS 規則，改了緩動曲線自然沒有變化）。
+   改用真正的 @keyframes：Radix Presence 會偵測 element 上掛的 animation 並等
+   animationend 才卸載 DOM，退場動畫才播得完整；開啟用前快後慢的 ease-out 曲線，
+   關閉維持乾脆的 ease-in-out，避免收合動作顯得拖沓 */
+@keyframes sheet-slide-in-x {
+  from {
+    transform: translateX(var(--sheet-slide-from, 100%));
+  }
+}
+@keyframes sheet-slide-out-x {
+  to {
+    transform: translateX(var(--sheet-slide-from, 100%));
+  }
+}
+@keyframes sheet-slide-in-y {
+  from {
+    transform: translateY(var(--sheet-slide-from, 100%));
+  }
+}
+@keyframes sheet-slide-out-y {
+  to {
+    transform: translateY(var(--sheet-slide-from, 100%));
+  }
+}
+.sheet-content--right {
+  --sheet-slide-from: 100%;
+}
+.sheet-content--left {
+  --sheet-slide-from: -100%;
+}
+.sheet-content--top {
+  --sheet-slide-from: -100%;
+}
+.sheet-content--bottom {
+  --sheet-slide-from: 100%;
+}
+.sheet-content--right[data-state="open"],
+.sheet-content--left[data-state="open"] {
+  animation: sheet-slide-in-x 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.sheet-content--right[data-state="closed"],
+.sheet-content--left[data-state="closed"] {
+  animation: sheet-slide-out-x 0.3s ease-in-out;
+}
+.sheet-content--top[data-state="open"],
+.sheet-content--bottom[data-state="open"] {
+  animation: sheet-slide-in-y 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.sheet-content--top[data-state="closed"],
+.sheet-content--bottom[data-state="closed"] {
+  animation: sheet-slide-out-y 0.3s ease-in-out;
+}

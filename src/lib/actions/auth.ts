@@ -181,6 +181,20 @@ export async function resetPassword(input: ResetPasswordInput): Promise<ResetPas
 		return { error: translateUpdatePasswordError(error.message) };
 	}
 
+	// 成功重設密碼等同於已證明擁有此信箱，比照 login() 成功時的做法一併解除
+	// 登入失敗鎖定，避免使用者密碼都改好了還要等 15 分鐘鎖定時間到才能登入
+	if (LOGIN_LOCK_SECRET) {
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
+		if (user?.email) {
+			await supabase.rpc("reset_login_failure", {
+				target_email: user.email,
+				secret: LOGIN_LOCK_SECRET,
+			});
+		}
+	}
+
 	// 這裡刻意不 signOut：Next.js 呼叫任一 Server Action 後，會自動重新渲染目前頁面的
 	// Server Component（/auth/reset-password/page.tsx）；如果在這裡就把 session 登出，
 	// 那次自動重新渲染會讀到「沒有 user」，觸發頁面自己的守門邏輯把使用者導去登入頁、
