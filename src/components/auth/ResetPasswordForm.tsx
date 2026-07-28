@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import type { FormEvent, ReactElement } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { z } from "zod";
 import { resetPassword, finishPasswordReset } from "@/lib/actions/auth";
 import { resetPasswordSchema } from "@/lib/validation/auth";
 import { Field, inputClass } from "@/components/ui/Field";
@@ -40,21 +41,21 @@ export function ResetPasswordForm(): ReactElement {
 	const handleSubmit = (e: FormEvent): void => {
 		e.preventDefault();
 
-		const parsed = resetPasswordSchema.safeParse({ password });
+		const parsed = resetPasswordSchema.safeParse({ password, confirmPassword });
 		if (!parsed.success) {
-			setPasswordError(parsed.error.issues[0]?.message);
+			const fieldErrors = z.flattenError(parsed.error).fieldErrors;
+			setPasswordError(fieldErrors.password?.[0]);
+			setConfirmError(fieldErrors.confirmPassword?.[0]);
 			return;
 		}
 		setPasswordError(undefined);
-
-		if (password !== confirmPassword) {
-			setConfirmError("兩次輸入的密碼不一致");
-			return;
-		}
 		setConfirmError(undefined);
 
 		startTransition(async () => {
-			const result = await resetPassword({ password: parsed.data.password });
+			const result = await resetPassword({
+				password: parsed.data.password,
+				confirmPassword: parsed.data.confirmPassword,
+			});
 			if ("error" in result) {
 				toast.error(result.error);
 				return;
