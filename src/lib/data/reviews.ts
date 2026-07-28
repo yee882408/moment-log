@@ -156,17 +156,16 @@ async function getPublicReviewsByKeyword(
 		return { reviews: [], totalCount, totalPages: 1 };
 	}
 
-	const { data, error } = await supabase
-		.from("concert_records_with_like_count")
-		.select(LIST_COLUMNS)
-		.in("id", ids);
+	// ids 已由 searchConcertRecordIds 取得，tags 查詢不需等主查詢結果，平行送出
+	const [{ data, error }, tagsByRecordId] = await Promise.all([
+		supabase.from("concert_records_with_like_count").select(LIST_COLUMNS).in("id", ids),
+		getTagsByRecordIds(ids),
+	]);
 	if (error) {
 		throw new Error(`讀取公開心得失敗：${error.message}`);
 	}
 
 	const orderedRows = reorderByKeywordSearch(data ?? [], ids, sort);
-	const recordIds = orderedRows.map((r) => r.id!);
-	const tagsByRecordId = await getTagsByRecordIds(recordIds);
 	const reviews = orderedRows.map((r) => mapPublicReviewRow(r, tagsByRecordId.get(r.id!) ?? []));
 
 	return {
