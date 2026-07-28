@@ -1,6 +1,6 @@
 import "server-only";
 
-import DOMPurify from "isomorphic-dompurify";
+import { DOMPurify } from "@/lib/richtext/sanitize";
 
 // 心得內文從純文字 textarea 改成 Tiptap 富文本編輯器後，資料庫裡新舊格式並存：
 // 舊資料是使用者輸入的純文字（沒有任何標籤），新資料是 Tiptap 輸出的 HTML。
