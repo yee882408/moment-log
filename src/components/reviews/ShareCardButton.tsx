@@ -8,12 +8,16 @@ import { Spinner } from "@/components/ui/Spinner";
 
 interface ShareCardButtonProps {
 	recordId: string;
+	// 分享圖由 /reviews/[id]/share-image 這個 Route Handler 產生，只認公開紀錄
+	// （getPublicReviewById），私密紀錄一定回 404；傳 disabled 時按鈕禁用、
+	// 不開啟 Dialog，避免使用者看到破圖
+	disabled?: boolean;
 }
 
 // 點擊後彈出 Dialog 預覽分享卡片圖片，內含下載按鈕；圖片由 /reviews/[id]/share-image
 //這個 Route Handler 產生，Dialog 未開啟時 DialogContent 不會 render，
 // 不會在頁面載入時就默默觸發一次圖片產生請求
-export function ShareCardButton({ recordId }: ShareCardButtonProps): ReactElement {
+export function ShareCardButton({ recordId, disabled = false }: ShareCardButtonProps): ReactElement {
 	const [open, setOpen] = useState(false);
 	const [imgLoaded, setImgLoaded] = useState(false);
 	const imageUrl = `/reviews/${recordId}/share-image`;
@@ -28,7 +32,13 @@ export function ShareCardButton({ recordId }: ShareCardButtonProps): ReactElemen
 
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
-			<Button type="button" variant="secondary" onClick={() => setOpen(true)}>
+			<Button
+				type="button"
+				variant="secondary"
+				disabled={disabled}
+				title={disabled ? "公開後才能分享" : undefined}
+				onClick={() => setOpen(true)}
+			>
 				分享卡片
 			</Button>
 			<DialogContent className="max-w-xl">

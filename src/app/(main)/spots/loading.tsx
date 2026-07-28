@@ -11,7 +11,7 @@ export default function Loading(): ReactElement {
 			</div>
 			<Skeleton className="h-9 w-64" />
 			<Skeleton className="h-14 w-full" />
-			<CardGridSkeleton />
+			<CardGridSkeleton cardHeightClassName="h-32" />
 		</main>
 	);
 }

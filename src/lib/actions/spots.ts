@@ -18,7 +18,7 @@ import {
 	type SpotListItem,
 	type SpotListSort,
 } from "@/lib/data/spots";
-import type { ActionResult } from "@/lib/actions/types";
+import { toGenericActionError, type ActionResult } from "@/lib/actions/types";
 
 export type AddSpotItemResult = { error: string } | { items: SpotListItem[] };
 
@@ -76,7 +76,7 @@ export async function createSpotList(input: SpotListInput): Promise<ActionResult
 		.single();
 
 	if (error) {
-		return { error: error.message };
+		return toGenericActionError(error, "createSpotList");
 	}
 
 	revalidatePath("/spots");
@@ -114,7 +114,7 @@ export async function updateSpotList(
 		.eq("user_id", user.id);
 
 	if (error) {
-		return { error: error.message };
+		return toGenericActionError(error, "updateSpotList");
 	}
 
 	revalidatePath("/spots");
@@ -138,7 +138,7 @@ export async function deleteSpotList(id: string): Promise<ActionResult> {
 		.eq("user_id", user.id);
 
 	if (error) {
-		return { error: error.message };
+		return toGenericActionError(error, "deleteSpotList");
 	}
 
 	revalidatePath("/spots");
@@ -176,7 +176,7 @@ export async function addSpotListItem(
 	});
 
 	if (error) {
-		return { error: error.message };
+		return toGenericActionError(error, "addSpotListItem");
 	}
 
 	revalidatePath(`/spots/${listId}`);
@@ -233,7 +233,7 @@ export async function updateSpotListItem(
 		.eq("list_id", listId);
 
 	if (error) {
-		return { error: error.message };
+		return toGenericActionError(error, "updateSpotListItem");
 	}
 
 	revalidatePath(`/spots/${listId}`);
@@ -271,7 +271,7 @@ export async function deleteSpotListItem(
 		.eq("list_id", listId);
 
 	if (error) {
-		return { error: error.message };
+		return toGenericActionError(error, "deleteSpotListItem");
 	}
 
 	revalidatePath(`/spots/${listId}`);

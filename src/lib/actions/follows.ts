@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { createNotification } from "@/lib/actions/notifications";
-import type { ActionResult } from "@/lib/actions/types";
+import { createNotification } from "@/lib/data/notifications";
+import { toGenericActionError, type ActionResult } from "@/lib/actions/types";
 
 const UNIQUE_VIOLATION = "23505";
 
@@ -19,6 +19,9 @@ export async function toggleFollow(
 	if (!user) {
 		return { error: "尚未登入" };
 	}
+	if (user.id === targetUserId) {
+		return { error: "無法追蹤自己" };
+	}
 
 	if (wasFollowing) {
 		const { error } = await supabase
@@ -27,7 +30,7 @@ export async function toggleFollow(
 			.eq("follower_id", user.id)
 			.eq("followee_id", targetUserId);
 		if (error) {
-			return { error: error.message };
+			return toGenericActionError(error, "toggleFollow.delete");
 		}
 	} else {
 		const { error } = await supabase
@@ -35,7 +38,7 @@ export async function toggleFollow(
 			.insert({ follower_id: user.id, followee_id: targetUserId });
 		// 重複追蹤（例如雙開分頁快速點兩下）視為已達成目的，不當錯誤
 		if (error && error.code !== UNIQUE_VIOLATION) {
-			return { error: error.message };
+			return toGenericActionError(error, "toggleFollow.insert");
 		}
 		if (!error) {
 			await createNotification({ userId: targetUserId, actorId: user.id, type: "follow" });

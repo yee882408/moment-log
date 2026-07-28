@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { createNotification } from "@/lib/actions/notifications";
-import type { ActionResult } from "@/lib/actions/types";
+import { createNotification } from "@/lib/data/notifications";
+import { toGenericActionError, type ActionResult } from "@/lib/actions/types";
 
 const UNIQUE_VIOLATION = "23505";
 
@@ -27,7 +27,7 @@ export async function toggleLike(
 			.eq("record_id", recordId)
 			.eq("user_id", user.id);
 		if (error) {
-			return { error: error.message };
+			return toGenericActionError(error, "toggleLike.delete");
 		}
 	} else {
 		const { error } = await supabase
@@ -35,7 +35,7 @@ export async function toggleLike(
 			.insert({ record_id: recordId, user_id: user.id });
 		// 重複按讚（例如雙開分頁快速點兩下）視為已達成目的，不當錯誤
 		if (error && error.code !== UNIQUE_VIOLATION) {
-			return { error: error.message };
+			return toGenericActionError(error, "toggleLike.insert");
 		}
 		if (!error) {
 			const { data: record } = await supabase
@@ -54,5 +54,9 @@ export async function toggleLike(
 		}
 	}
 
+	// 按讚只可能發生在公開紀錄上（RLS 擋私密紀錄 insert），但這篇紀錄可能是從
+	// /concerts/[id] 或 /reviews/[id] 任一頁面觸發的操作，兩條路徑都要 revalidate
+	// 才能讓讚數即時反映；對不存在快取的路徑呼叫是安全的 no-op
 	revalidatePath(`/reviews/${recordId}`);
+	revalidatePath(`/concerts/${recordId}`);
 }

@@ -5,8 +5,9 @@ import { deleteComment } from "@/lib/actions/comments";
 import type { RecordComment } from "@/lib/data/comments";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { Card } from "@/components/ui/Card";
+import { AuthorAvatar } from "@/components/reviews/AuthorAvatar";
 import { useConfirmDelete } from "@/lib/hooks/useConfirmDelete";
+import { formatRelativeTime } from "@/lib/relativeTime";
 
 interface CommentItemProps {
 	comment: RecordComment;
@@ -28,23 +29,31 @@ export function CommentItem({
 	);
 
 	return (
-		<Card className="flex flex-col gap-1">
-			<div className="flex items-center justify-between gap-2">
-				<span className="text-sm font-medium text-foreground">
-					{comment.author ?? "匿名"}
-				</span>
+		<div className="flex gap-2.5 border-b border-[#e4dcd0] pb-4 last:border-b-0 last:pb-0">
+			<AuthorAvatar
+				author={comment.author}
+				avatarUrl={comment.author_avatar_url}
+				sizeClass="h-7 w-7"
+			/>
+			<div className="flex flex-1 items-start justify-between gap-2">
+				<p className="text-sm leading-relaxed whitespace-pre-wrap text-[#18130f]">
+					<span className="mr-1.5 font-semibold">{comment.author ?? "匿名"}</span>
+					{comment.body}
+					<span className="ml-1.5 text-xs text-[#7d7568]">
+						{formatRelativeTime(comment.created_at)}
+					</span>
+				</p>
 				{canDelete && (
 					<Button
 						type="button"
 						variant="ghost"
-						className="text-xs"
+						className="shrink-0 text-xs"
 						onClick={() => dialogRef.current?.open()}
 					>
 						刪除
 					</Button>
 				)}
 			</div>
-			<p className="whitespace-pre-wrap text-sm text-foreground">{comment.body}</p>
 			{canDelete && (
 				<ConfirmDialog
 					ref={dialogRef}
@@ -54,6 +63,6 @@ export function CommentItem({
 					onConfirm={handleConfirm}
 				/>
 			)}
-		</Card>
+		</div>
 	);
 }

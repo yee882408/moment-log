@@ -46,6 +46,12 @@ async function verifyTurnstileToken(token: string): Promise<boolean> {
 	return data.success;
 }
 
+// register_login_failure / reset_login_failure 這兩支 RPC 會修改資料，且必須在登入前
+// （尚無 session）就能被呼叫，用這組只有伺服器端知道的密鑰把關，避免任何人不透過
+// login() 就能直接呢名呼叫、對任意受害者 email 惡意觸發鎖定。密鑰同時也要在 Supabase
+// 資料庫端用 `alter database postgres set app.login_lock_secret = '...'` 設定同樣的值
+const LOGIN_LOCK_SECRET = process.env.LOGIN_LOCK_SECRET;
+
 export async function login(
 	input: LoginInput & { turnstileToken: string },
 ): Promise<ActionResult> {
@@ -61,14 +67,36 @@ export async function login(
 	}
 
 	const supabase = await createClient();
+
+	const { data: locked } = await supabase.rpc("is_login_locked", {
+		target_email: parsed.data.email,
+	});
+	if (locked) {
+		return { error: "登入失敗次數過多，請於 15 分鐘後再試" };
+	}
+
 	const { error } = await supabase.auth.signInWithPassword({
 		email: parsed.data.email,
 		password: parsed.data.password,
 	});
+
 	if (error) {
 		// 帳密錯誤、或 custom_access_token_hook 拒絕已被封鎖的帳號，都會落在這裡；
 		// 用同一句訊息不特別區分，避免讓人特意去試哪個帳號被封鎖（帳號枚舉風險）
+		if (LOGIN_LOCK_SECRET) {
+			await supabase.rpc("register_login_failure", {
+				target_email: parsed.data.email,
+				secret: LOGIN_LOCK_SECRET,
+			});
+		}
 		return { error: "登入失敗：email 或密碼錯誤，或帳號已被停用" };
+	}
+
+	if (LOGIN_LOCK_SECRET) {
+		await supabase.rpc("reset_login_failure", {
+			target_email: parsed.data.email,
+			secret: LOGIN_LOCK_SECRET,
+		});
 	}
 
 	redirect("/");

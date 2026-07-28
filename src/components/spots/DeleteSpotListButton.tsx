@@ -8,9 +8,11 @@ import { useConfirmDelete } from "@/lib/hooks/useConfirmDelete";
 
 interface DeleteSpotListButtonProps {
 	listId: string;
+	// 外部覆寫樣式，例如 /spots/[id] 護照風頁面需要無邊框的純文字連結外觀
+	className?: string;
 }
 
-export function DeleteSpotListButton({ listId }: DeleteSpotListButtonProps): ReactElement {
+export function DeleteSpotListButton({ listId, className }: DeleteSpotListButtonProps): ReactElement {
 	// 成功會 redirect；有回傳代表失敗
 	const { busy, dialogRef, handleConfirm } = useConfirmDelete(() => deleteSpotList(listId), {
 		errorPrefix: "刪除失敗：",
@@ -18,7 +20,12 @@ export function DeleteSpotListButton({ listId }: DeleteSpotListButtonProps): Rea
 
 	return (
 		<>
-			<Button type="button" variant="danger" onClick={() => dialogRef.current?.open()}>
+			<Button
+				type="button"
+				variant="danger"
+				className={className}
+				onClick={() => dialogRef.current?.open()}
+			>
 				刪除清單
 			</Button>
 			<ConfirmDialog

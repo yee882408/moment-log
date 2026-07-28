@@ -4,9 +4,10 @@ import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/database.types";
 import { getRecordTags, getTagsByRecordIds, type TagOption } from "@/lib/data/tags";
 import { searchConcertRecordIds, reorderByKeywordSearch } from "@/lib/data/concertRecordSearch";
+import { DEFAULT_TICKET_CURRENCY, type TicketCurrency } from "@/lib/currency";
 
 const LIST_COLUMNS =
-	"id, title, artist, venue_name, date, rating, is_public, cover_image_url, like_count, comment_count";
+	"id, title, artist, venue_name, date, ticket_price, ticket_currency, rating, is_public, cover_image_url, like_count, comment_count";
 
 type RecordListRow = {
 	id: string | null;
@@ -14,6 +15,8 @@ type RecordListRow = {
 	artist: string | null;
 	venue_name: string | null;
 	date: string | null;
+	ticket_price: number | null;
+	ticket_currency: string | null;
 	rating: number | null;
 	is_public: boolean | null;
 	cover_image_url: string | null;
@@ -22,7 +25,8 @@ type RecordListRow = {
 };
 
 // view 的型別產生器把所有欄位標成 nullable（保守推斷），這些欄位在 concert_records
-// 本身是 not null（除了 rating/cover_image_url 本來就可為 null），這裡用 ! 斷言還原實際保證
+// 本身是 not null（除了 rating/ticket_price/cover_image_url 本來就可為 null），
+// 這裡用 ! 斷言還原實際保證
 function mapRecordListRow(row: RecordListRow, tags: TagOption[]): RecordListItem {
 	return {
 		id: row.id!,
@@ -30,6 +34,8 @@ function mapRecordListRow(row: RecordListRow, tags: TagOption[]): RecordListItem
 		artist: row.artist!,
 		venue_name: row.venue_name!,
 		date: row.date!,
+		ticket_price: row.ticket_price,
+		ticket_currency: (row.ticket_currency as TicketCurrency | null) ?? DEFAULT_TICKET_CURRENCY,
 		rating: row.rating,
 		is_public: row.is_public!,
 		cover_image_url: row.cover_image_url,
@@ -42,6 +48,8 @@ function mapRecordListRow(row: RecordListRow, tags: TagOption[]): RecordListItem
 type RecordRow = Database["public"]["Tables"]["concert_records"]["Row"];
 
 // 列表只需要部分欄位，從 Row 型別挑出來重用
+// ticket_currency 額外聲明（不從 Pick 挑）：Database 型別產生器把資料庫的
+// check constraint 只反映成 string，這裡窄化成 TicketCurrency 給顯示端用
 export type RecordListItem = Pick<
 	RecordRow,
 	| "id"
@@ -49,10 +57,12 @@ export type RecordListItem = Pick<
 	| "artist"
 	| "venue_name"
 	| "date"
+	| "ticket_price"
 	| "rating"
 	| "is_public"
 	| "cover_image_url"
 > & {
+	ticket_currency: TicketCurrency;
 	// 只有公開紀錄才有意義；私密紀錄一律回 0（RLS 之外沒人能對私密紀錄按讚/留言）
 	like_count: number;
 	comment_count: number;
@@ -60,22 +70,32 @@ export type RecordListItem = Pick<
 };
 
 // 詳情／編輯需要的欄位（不用 SELECT *，明確列出）
+// user_id/created_at/author/author_avatar_url：合併 /concerts/[id]、/reviews/[id]
+// 共用呈現元件（RecordDetailBody）後才需要的欄位，用來顯示作者資訊列。
+// getRecordById 本身仍只能查「自己的」紀錄，join profiles 只是為了跟
+// PublicReviewDetail 的呈現欄位對齊，不代表這支查詢的權限範圍改變
 export type RecordDetail = Pick<
 	RecordRow,
 	| "id"
+	| "user_id"
 	| "title"
 	| "artist"
 	| "venue_name"
 	| "venue_lat"
 	| "venue_lng"
 	| "date"
+	| "seat_info"
 	| "ticket_price"
 	| "rating"
 	| "review"
 	| "is_public"
 	| "spotify_playlist_id"
 	| "cover_image_url"
+	| "created_at"
 > & {
+	ticket_currency: TicketCurrency;
+	author: string | null;
+	author_avatar_url: string | null;
 	tags: TagOption[];
 };
 
@@ -201,7 +221,7 @@ export async function getRecordById(
 	const { data, error } = await supabase
 		.from("concert_records")
 		.select(
-			"id, title, artist, venue_name, venue_lat, venue_lng, date, ticket_price, rating, review, is_public, spotify_playlist_id, cover_image_url",
+			"id, user_id, title, artist, venue_name, venue_lat, venue_lng, date, seat_info, ticket_price, ticket_currency, rating, review, is_public, spotify_playlist_id, cover_image_url, created_at, profiles(display_name, avatar_url)",
 		)
 		.eq("id", id)
 		.eq("user_id", userId)
@@ -214,6 +234,13 @@ export async function getRecordById(
 		return null;
 	}
 
+	const { profiles, ...rest } = data;
 	const tags = await getRecordTags(id);
-	return { ...data, tags };
+	return {
+		...rest,
+		ticket_currency: (data.ticket_currency as TicketCurrency | null) ?? DEFAULT_TICKET_CURRENCY,
+		author: profiles?.display_name ?? null,
+		author_avatar_url: profiles?.avatar_url ?? null,
+		tags,
+	};
 }

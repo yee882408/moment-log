@@ -8,10 +8,13 @@ import { useConfirmDelete } from "@/lib/hooks/useConfirmDelete";
 
 interface DeleteRecordButtonProps {
 	recordId: string;
+	// 外部覆寫樣式，例如 /concerts/[id] 雜誌風頁面需要無邊框的純文字連結外觀
+	className?: string;
 }
 
 export function DeleteRecordButton({
 	recordId,
+	className,
 }: DeleteRecordButtonProps): ReactElement {
 	// 成功會 redirect；有回傳代表失敗
 	const { busy, dialogRef, handleConfirm } = useConfirmDelete(() => deleteRecord(recordId), {
@@ -20,7 +23,12 @@ export function DeleteRecordButton({
 
 	return (
 		<>
-			<Button type="button" variant="danger" onClick={() => dialogRef.current?.open()}>
+			<Button
+				type="button"
+				variant="danger"
+				className={className}
+				onClick={() => dialogRef.current?.open()}
+			>
 				刪除
 			</Button>
 			<ConfirmDialog

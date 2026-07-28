@@ -1,5 +1,6 @@
 import type { ReactElement } from "react";
-import { Button } from "@/components/ui/Button";
+import { buildPageItems } from "@/lib/pagination";
+import { cn } from "@/lib/utils";
 
 interface PaginationControlsProps {
 	page: number;
@@ -22,27 +23,54 @@ export function PaginationControls({
 		return null;
 	}
 
+	const items = buildPageItems(page, totalPages);
+
 	return (
-		<nav data-slot="pagination-controls" className="flex items-center justify-center gap-2" aria-label="分頁">
-			<Button
+		<nav data-slot="pagination-controls" className="flex items-center justify-center gap-1" aria-label="分頁">
+			<button
 				type="button"
-				variant="secondary"
 				disabled={disabled || page <= 1}
 				onClick={() => onChange(page - 1)}
+				aria-label="上一頁"
+				className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-sm text-muted-foreground transition-colors hover:bg-background hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
 			>
-				← 上一頁
-			</Button>
-			<span className="text-sm text-muted-foreground">
-				第 {page} / {totalPages} 頁
-			</span>
-			<Button
+				←
+			</button>
+
+			{items.map((item, i) =>
+				typeof item === "number" ? (
+					<button
+						key={item}
+						type="button"
+						disabled={disabled}
+						onClick={() => onChange(item)}
+						aria-label={`第 ${item} 頁`}
+						aria-current={item === page ? "page" : undefined}
+						className={cn(
+							"flex h-8 min-w-8 cursor-pointer items-center justify-center rounded-lg px-2 text-sm transition-colors disabled:cursor-not-allowed",
+							item === page
+								? "bg-primary font-medium text-primary-foreground"
+								: "text-foreground hover:bg-background",
+						)}
+					>
+						{item}
+					</button>
+				) : (
+					<span key={`${item}-${i}`} className="flex h-8 w-8 items-center justify-center text-sm text-muted-foreground">
+						…
+					</span>
+				),
+			)}
+
+			<button
 				type="button"
-				variant="secondary"
 				disabled={disabled || page >= totalPages}
 				onClick={() => onChange(page + 1)}
+				aria-label="下一頁"
+				className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-sm text-muted-foreground transition-colors hover:bg-background hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
 			>
-				下一頁 →
-			</Button>
+				→
+			</button>
 		</nav>
 	);
 }

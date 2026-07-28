@@ -39,9 +39,14 @@ export default async function ConcertsPage({ searchParams }: PageProps): Promise
 	return (
 		<main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-6">
 			<div className="flex items-center justify-between">
-				<h1 className="text-xl font-semibold text-foreground">
-					個人紀錄
-				</h1>
+				<div className="flex flex-col gap-1">
+					<span className="text-xs font-bold tracking-wider text-primary uppercase">
+						我的紀錄
+					</span>
+					<h1 className="text-2xl font-extrabold tracking-tight text-foreground">
+						個人紀錄
+					</h1>
+				</div>
 				<Button asChild>
 					<Link href="/concerts/new">+ 新增紀錄</Link>
 				</Button>

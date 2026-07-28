@@ -7,7 +7,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createTemplate, updateTemplate } from "@/lib/actions/concerts";
 import { concertSchema, type ConcertInput } from "@/lib/validation/concert";
-import { VenueSearch } from "@/components/venue/VenueSearch";
 import { Field, inputClass } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
@@ -25,22 +24,11 @@ export function ConcertForm({
 	const {
 		register,
 		handleSubmit,
-		setValue,
-		watch,
 		formState: { errors, isSubmitting },
 	} = useForm<z.input<typeof concertSchema>, unknown, ConcertInput>({
 		resolver: zodResolver(concertSchema),
 		defaultValues,
 	});
-
-	const venueLat = watch("venueLat");
-	const venueLng = watch("venueLng");
-
-	const handleVenuePick = (label: string, lat: number, lng: number): void => {
-		setValue("venueName", label, { shouldValidate: true });
-		setValue("venueLat", lat);
-		setValue("venueLng", lng);
-	};
 
 	const onSubmit = async (values: ConcertInput): Promise<void> => {
 		const result = templateId
@@ -66,8 +54,6 @@ export function ConcertForm({
 				)}
 			</Field>
 
-			<VenueSearch onPick={handleVenuePick} />
-
 			<Field label="場館名稱" error={errors.venueName?.message}>
 				{(fieldProps) => (
 					<input
@@ -79,17 +65,9 @@ export function ConcertForm({
 				)}
 			</Field>
 
+			{/* 座標不再由表單收集，只保留 hidden 欄位讓既有資料能 round-trip（見 RecordForm 的同款處理） */}
 			<input type="hidden" {...register("venueLat")} />
 			<input type="hidden" {...register("venueLng")} />
-			{venueLat != null && venueLng != null ? (
-				<p className="text-xs text-muted-foreground">
-					已定位：{Number(venueLat).toFixed(5)}, {Number(venueLng).toFixed(5)}
-				</p>
-			) : (
-				<p className="text-xs text-warning">
-					範本需要座標，請先搜尋場館
-				</p>
-			)}
 
 			<Field label="日期" error={errors.date?.message}>
 				{(fieldProps) => (

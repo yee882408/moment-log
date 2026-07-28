@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import type { ActionResult } from "@/lib/actions/types";
+import { toGenericActionError, type ActionResult } from "@/lib/actions/types";
 
 const UNIQUE_VIOLATION = "23505";
 
@@ -26,7 +26,7 @@ export async function toggleSpotListLike(
 			.eq("list_id", listId)
 			.eq("user_id", user.id);
 		if (error) {
-			return { error: error.message };
+			return toGenericActionError(error, "toggleSpotListLike.delete");
 		}
 	} else {
 		const { error } = await supabase
@@ -34,7 +34,7 @@ export async function toggleSpotListLike(
 			.insert({ list_id: listId, user_id: user.id });
 		// 重複按讚（例如雙開分頁快速點兩下）視為已達成目的，不當錯誤
 		if (error && error.code !== UNIQUE_VIOLATION) {
-			return { error: error.message };
+			return toGenericActionError(error, "toggleSpotListLike.insert");
 		}
 	}
 

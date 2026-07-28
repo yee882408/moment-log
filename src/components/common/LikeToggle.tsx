@@ -9,10 +9,19 @@ interface LikeToggleProps {
 	initialCount: number;
 	// currentlyLiked：呼叫端目前的按讚狀態（切換前）；決定這次要 insert 還是 delete
 	onToggle: (currentlyLiked: boolean) => Promise<{ error: string } | undefined>;
+	// 私密紀錄無法被按讚（RLS 擋 insert），呼叫端傳 disabled 時按鈕顯示但不可操作
+	disabled?: boolean;
+	disabledReason?: string;
 }
 
 // 讚按鈕共用邏輯：optimistic update + 失敗還原 + toast，供 LikeButton/SpotListLikeButton 包裝
-export function LikeToggle({ initialLiked, initialCount, onToggle }: LikeToggleProps): ReactElement {
+export function LikeToggle({
+	initialLiked,
+	initialCount,
+	onToggle,
+	disabled = false,
+	disabledReason,
+}: LikeToggleProps): ReactElement {
 	const [liked, setLiked] = useState(initialLiked);
 	const [count, setCount] = useState(initialCount);
 	const [, startTransition] = useTransition();
@@ -39,11 +48,15 @@ export function LikeToggle({ initialLiked, initialCount, onToggle }: LikeToggleP
 				type="button"
 				aria-pressed={liked}
 				aria-label={liked ? "取消讚" : "讚"}
+				disabled={disabled}
+				title={disabled ? disabledReason : undefined}
 				onClick={handleClick}
-				className={`flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border transition-colors ${
-					liked
-						? "border-primary bg-primary text-white"
-						: "border-border bg-white text-muted-foreground hover:bg-background"
+				className={`flex h-9 w-9 items-center justify-center rounded-full border transition-colors ${
+					disabled
+						? "cursor-not-allowed border-border bg-white text-muted-foreground/50"
+						: liked
+							? "cursor-pointer border-primary bg-primary text-white"
+							: "cursor-pointer border-border bg-white text-muted-foreground hover:bg-background"
 				}`}
 			>
 				<svg

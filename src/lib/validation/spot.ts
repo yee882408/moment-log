@@ -4,9 +4,9 @@ export const placeTypeValues = ["restaurant", "attraction", "other"] as const;
 
 // 新增／編輯清單共用一份 schema（清單本身：標題、藝人 tag、公開設定）
 export const spotListSchema = z.object({
-	title: z.string().min(1, "請輸入清單標題"),
-	artist: z.string().min(1, "請輸入藝人"),
-	description: z.string().optional(),
+	title: z.string().min(1, "請輸入清單標題").max(200, "標題不可超過 200 字"),
+	artist: z.string().min(1, "請輸入藝人").max(200, "藝人不可超過 200 字"),
+	description: z.string().max(2000, "描述不可超過 2000 字").optional(),
 	isPublic: z.boolean(),
 });
 
@@ -14,7 +14,7 @@ export type SpotListInput = z.infer<typeof spotListSchema>;
 
 // 新增／編輯清單內地點共用一份 schema（地點不獨立設定公開性，跟隨所屬清單）
 export const spotItemSchema = z.object({
-	placeName: z.string().min(1, "請輸入地點名稱"),
+	placeName: z.string().min(1, "請輸入地點名稱").max(200, "地點名稱不可超過 200 字"),
 	placeLat: z.number(), // 由 geocoding 搜尋帶入
 	placeLng: z.number(),
 	// <select> 未選擇時原生值是空字串，不是 undefined；z.enum().optional() 不接受
@@ -24,7 +24,7 @@ export const spotItemSchema = z.object({
 		.union([z.enum(placeTypeValues), z.literal("")])
 		.optional()
 		.transform((v) => (v === "" ? undefined : v)),
-	description: z.string().optional(),
+	description: z.string().max(2000, "描述不可超過 2000 字").optional(),
 	coverImageUrl: z.string().optional(), // 上傳後的 public URL
 });
 

@@ -13,12 +13,15 @@ interface CommentSectionProps {
 	recordId: string;
 	currentUserId: string | null;
 	initialCommentsPage: CommentsPage;
+	// 私密紀錄無法留言（RLS 擋 insert）；登入者仍會看到表單，但輸入框/送出鈕禁用
+	canComment?: boolean;
 }
 
 export function CommentSection({
 	recordId,
 	currentUserId,
 	initialCommentsPage,
+	canComment = true,
 }: CommentSectionProps): ReactElement {
 	const [page, setPage] = useState(1);
 	const [commentsPage, setCommentsPage] = useState(initialCommentsPage);
@@ -48,20 +51,20 @@ export function CommentSection({
 	};
 
 	return (
-		<section className="flex flex-col gap-3">
-			<h2 className="text-sm font-semibold text-foreground">
+		<section className="flex flex-col gap-4">
+			<h2 className="text-xs font-bold tracking-[0.14em] text-[#b8934a] uppercase">
 				留言（{commentsPage.totalCount}）
 			</h2>
 
-			<div className="flex min-h-60 flex-col gap-3 rounded-2xl border border-border bg-background p-4">
+			<div className="flex min-h-40 flex-col gap-4">
 				{isPending ? (
-					<div className="flex flex-1 items-center justify-center">
+					<div className="flex flex-1 items-center justify-center py-8">
 						<Spinner />
 					</div>
 				) : (
 					<>
 						{commentsPage.comments.length === 0 && (
-							<p className="text-sm text-muted-foreground">還沒有留言，來當第一個吧。</p>
+							<p className="text-sm text-[#7d7568]">還沒有留言，來當第一個吧。</p>
 						)}
 						{commentsPage.comments.map((c) => (
 							<CommentItem
@@ -83,7 +86,7 @@ export function CommentSection({
 			</div>
 
 			{currentUserId && (
-				<CommentForm recordId={recordId} onCreated={handleCreated} />
+				<CommentForm recordId={recordId} onCreated={handleCreated} disabled={!canComment} />
 			)}
 		</section>
 	);

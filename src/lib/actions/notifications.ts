@@ -1,40 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import {
-	getNotifications,
-	getUnreadCount,
-	type NotificationItem,
-	type NotificationType,
-} from "@/lib/data/notifications";
-
-interface CreateNotificationInput {
-	userId: string; // 通知的接收者
-	actorId: string; // 觸發這則通知的人（目前登入者）
-	type: NotificationType;
-	recordId?: string;
-	commentId?: string;
-}
-
-// 供 follows.ts/likes.ts/comments.ts 的成功分支呼叫。自己操作自己的不通知；
-// 失敗只吞掉不往外拋——通知寫入失敗不該讓按讚/留言/追蹤本身失敗
-export async function createNotification(input: CreateNotificationInput): Promise<void> {
-	if (input.userId === input.actorId) {
-		return;
-	}
-
-	const supabase = await createClient();
-	const { error } = await supabase.from("notifications").insert({
-		user_id: input.userId,
-		actor_id: input.actorId,
-		type: input.type,
-		record_id: input.recordId ?? null,
-		comment_id: input.commentId ?? null,
-	});
-	if (error) {
-		console.error(`建立通知失敗（type=${input.type}）：${error.message}`);
-	}
-}
+import { getNotifications, getUnreadCount, type NotificationItem } from "@/lib/data/notifications";
 
 // Popover 開啟時呼叫：一次把目前所有未讀通知標記已讀
 export async function markAllAsRead(): Promise<void> {

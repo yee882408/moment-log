@@ -38,8 +38,8 @@ export default async function EditTemplatePage({
 						title: template.title,
 						artist: template.artist,
 						venueName: template.venue_name,
-						venueLat: template.venue_lat,
-						venueLng: template.venue_lng,
+						venueLat: template.venue_lat ?? undefined,
+						venueLng: template.venue_lng ?? undefined,
 						date: template.date,
 					}}
 				/>

@@ -26,6 +26,7 @@ export interface CurrentUserProfile {
 	email: string | null;
 	displayName: string;
 	avatarUrl: string | null;
+	createdAt: string;
 }
 
 // 目前登入者的個人檔案，供 SiteHeader（頭像/選單）與 /profile 頁面共用。未登入回 null
@@ -52,6 +53,8 @@ export async function getCurrentUserProfile(): Promise<CurrentUserProfile | null
 		email: user.email ?? null,
 		displayName: data?.display_name ?? "",
 		avatarUrl: data?.avatar_url ?? null,
+		// Supabase Auth 內建欄位，不需要額外查表或 migration
+		createdAt: user.created_at,
 	};
 }
 

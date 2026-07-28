@@ -3,32 +3,45 @@
 import "leaflet/dist/leaflet.css";
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
+import { renderToStaticMarkup } from "react-dom/server";
 import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
-import { Check, Copy, Layers, X } from "lucide-react";
+import { Check, Copy, Landmark, Layers, MapPin, Utensils, X } from "lucide-react";
 import type { ReactElement } from "react";
 
-// Leaflet 預設 marker icon 走相對路徑找圖片，經過 bundler 打包後路徑會失效，
-// 這裡改用 CDN 上跟套件版本一致的圖檔位址，是 react-leaflet 官方文件建議的修法
-function buildIcon(color: string): L.Icon {
-	return L.icon({
-		iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${color}.png`,
-		shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-		iconSize: [25, 41],
-		iconAnchor: [12, 41],
-		popupAnchor: [1, -34],
-		shadowSize: [41, 41],
+// marker 顏色/圖示依地點類型區分（比照 SpotItemCard.tsx 的 placeTypeConfig 分類），
+// 用圓形色底 + lucide icon 取代預設水滴 pin，不用看圖例也能一眼分辨類型
+const placeTypeVisuals: Record<string, { color: string; label: string; Icon: typeof MapPin }> = {
+	restaurant: { color: "#f97316", label: "餐廳", Icon: Utensils },
+	attraction: { color: "#8b5cf6", label: "景點", Icon: Landmark },
+	other: { color: "#3b82f6", label: "其他", Icon: MapPin },
+};
+
+// 綠色 marker：搜尋後尚未送出的暫定新增點，跟既有地點的顏色都不同，維持獨立語意
+const previewColor = "#10b981";
+
+// 圓形色底 + 白色 icon + 尖角，尖角頂點對齊實際座標（iconAnchor 需與尖角頂點座標一致）
+function buildDivIcon(color: string, Icon: typeof MapPin): L.DivIcon {
+	const iconMarkup = renderToStaticMarkup(<Icon color="#ffffff" size={16} strokeWidth={2.5} />);
+	return L.divIcon({
+		className: "",
+		html: `
+			<div style="position:relative;width:32px;height:40px;">
+				<div style="position:absolute;top:0;left:0;width:32px;height:32px;border-radius:50%;background:${color};border:2px solid #ffffff;box-shadow:0 2px 6px rgba(15,23,42,.3);display:flex;align-items:center;justify-content:center;">
+					${iconMarkup}
+				</div>
+				<div style="position:absolute;top:28px;left:12px;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:8px solid ${color};"></div>
+			</div>
+		`,
+		iconSize: [32, 40],
+		iconAnchor: [16, 40],
+		popupAnchor: [0, -38],
 	});
 }
 
-// marker 顏色依地點類型區分（比照 SpotItemCard.tsx 的 placeTypeIcons/placeTypeLabels 分類）
-const restaurantIcon = buildIcon("orange");
-const attractionIcon = buildIcon("violet");
-const otherIcon = buildIcon("blue");
-
-const placeTypeIcons: Record<string, L.Icon> = {
-	restaurant: restaurantIcon,
-	attraction: attractionIcon,
-	other: otherIcon,
+const placeTypeIcons: Record<string, L.DivIcon> = {
+	restaurant: buildDivIcon(placeTypeVisuals.restaurant.color, placeTypeVisuals.restaurant.Icon),
+	attraction: buildDivIcon(placeTypeVisuals.attraction.color, placeTypeVisuals.attraction.Icon),
+	other: buildDivIcon(placeTypeVisuals.other.color, placeTypeVisuals.other.Icon),
 };
 
 const placeTypeLabels: Record<string, string> = {
@@ -37,8 +50,7 @@ const placeTypeLabels: Record<string, string> = {
 	other: "其他",
 };
 
-// 綠色 marker：搜尋後尚未送出的暫定新增點，跟既有地點的顏色都不同，維持獨立語意
-const previewIcon = buildIcon("green");
+const previewIcon = buildDivIcon(previewColor, MapPin);
 
 const legendItems: { type: string; color: string; label: string }[] = [
 	{ type: "restaurant", color: "#f97316", label: "餐廳" },
@@ -81,7 +93,7 @@ function FlyToPreview({ previewPoint }: { previewPoint: SpotMapInnerProps["previ
 }
 
 // 複製座標到剪貼簿，讓使用者可以貼到其他地圖服務或傳給朋友，不用手動選取文字
-function CopyCoordsButton({ lat, lng }: { lat: number; lng: number }): ReactElement {
+function CopyCoordsButton({ lat, lng, color }: { lat: number; lng: number; color: string }): ReactElement {
 	const [status, setStatus] = useState<"idle" | "copied" | "failed">("idle");
 
 	const handleCopy = (): void => {
@@ -104,9 +116,8 @@ function CopyCoordsButton({ lat, lng }: { lat: number; lng: number }): ReactElem
 			type="button"
 			onClick={handleCopy}
 			title={`複製座標（${lat.toFixed(5)}, ${lng.toFixed(5)}）`}
-			className={`mt-1 flex cursor-pointer items-center gap-1 text-xs hover:underline ${
-				status === "failed" ? "text-red-600" : "text-primary"
-			}`}
+			style={{ color: status === "failed" ? "#dc2626" : color }}
+			className="mt-1 flex cursor-pointer items-center gap-1 text-xs hover:underline"
 		>
 			{status === "copied" && (
 				<>
@@ -168,62 +179,85 @@ export function SpotMapInner({
 					attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 					url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
 				/>
-				{points.map((p) => (
-					<Marker
-						key={p.id}
-						position={[p.lat, p.lng]}
-						icon={placeTypeIcons[p.placeType ?? "other"] ?? otherIcon}
-						ref={(marker) => {
-							if (marker) {
-								markerRefs.current.set(p.id, marker);
-							} else {
-								markerRefs.current.delete(p.id);
-							}
-						}}
-					>
-						{/* minWidth 讓說明文字有空間換行，不然長一點的說明會被 Leaflet 預設寬度硬擠成一長串 */}
-						<Popup minWidth={200}>
-							<span className="font-medium">{p.placeName}</span>
-							<br />
-							{placeTypeLabels[p.placeType ?? "other"] ?? "其他"} · {p.artist}
-							{p.description && (
-								// select-text：Leaflet popup 內文字預設可選取，這裡明確加上避免被
-								// 其他全域樣式意外設成 user-select: none，確保使用者能選取複製說明
-								<p className="mt-1 max-h-24 overflow-y-auto text-xs whitespace-pre-wrap text-muted-foreground select-text">
-									{p.description}
-								</p>
-							)}
-							<CopyCoordsButton lat={p.lat} lng={p.lng} />
-						</Popup>
-					</Marker>
-				))}
+				{points.map((p) => {
+					const typeColor = placeTypeVisuals[p.placeType ?? "other"]?.color ?? placeTypeVisuals.other.color;
+					return (
+						<Marker
+							key={p.id}
+							position={[p.lat, p.lng]}
+							icon={placeTypeIcons[p.placeType ?? "other"] ?? placeTypeIcons.other}
+							ref={(marker) => {
+								if (marker) {
+									markerRefs.current.set(p.id, marker);
+								} else {
+									markerRefs.current.delete(p.id);
+								}
+							}}
+						>
+							{/* minWidth 讓說明文字有空間換行，不然長一點的說明會被 Leaflet 預設寬度硬擠成一長串 */}
+							<Popup minWidth={200}>
+								<span
+									className="flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase"
+									style={{ color: typeColor }}
+								>
+									<span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: typeColor }} />
+									{placeTypeLabels[p.placeType ?? "other"] ?? "其他"} · {p.artist}
+								</span>
+								<span className="mt-1 block text-base leading-snug font-semibold text-foreground">
+									{p.placeName}
+								</span>
+								{p.description && (
+									// select-text：Leaflet popup 內文字預設可選取，這裡明確加上避免被
+									// 其他全域樣式意外設成 user-select: none，確保使用者能選取複製說明
+									<p className="mt-1 max-h-24 overflow-y-auto text-xs whitespace-pre-wrap text-muted-foreground select-text">
+										{p.description}
+									</p>
+								)}
+								<CopyCoordsButton lat={p.lat} lng={p.lng} color={typeColor} />
+							</Popup>
+						</Marker>
+					);
+				})}
 				{previewPoint && (
 					<Marker
 						position={[previewPoint.lat, previewPoint.lng]}
 						icon={previewIcon}
 					>
 						<Popup>
-							<span className="font-medium">{previewPoint.label}</span>
-							<br />
-							尚未送出
+							<span
+								className="flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase"
+								style={{ color: previewColor }}
+							>
+								<span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: previewColor }} />
+								尚未送出
+							</span>
+							<span className="mt-1 block text-base leading-snug font-semibold text-foreground">
+								{previewPoint.label}
+							</span>
 						</Popup>
 					</Marker>
 				)}
 				<FlyToPreview previewPoint={previewPoint} />
 			</MapContainer>
 			{legendOpen ? (
-				<div className="absolute top-2 right-2 z-1000 flex flex-col gap-1 rounded-lg bg-white/90 px-2.5 py-2 text-xs text-foreground shadow-sm backdrop-blur-sm">
-					<button
-						type="button"
-						onClick={() => setLegendOpen(false)}
-						aria-label="收合圖例"
-						title="收合圖例"
-						className="mb-1 flex cursor-pointer items-center justify-end text-muted-foreground hover:text-foreground"
-					>
-						<X className="h-3.5 w-3.5" />
-					</button>
+				<div className="absolute top-2 right-2 z-1000 rounded-sm border border-border bg-card/95 px-3.5 py-2.5 shadow-[0_8px_20px_-10px_rgba(15,23,42,0.25)] backdrop-blur-sm">
+					<div className="pointer-events-none absolute inset-1 rounded-xs border border-dashed border-border" />
+					<div className="flex items-center justify-between gap-4">
+						<span className="text-xs font-bold tracking-wider text-primary uppercase">
+							類別
+						</span>
+						<button
+							type="button"
+							onClick={() => setLegendOpen(false)}
+							aria-label="收合圖例"
+							title="收合圖例"
+							className="cursor-pointer text-muted-foreground hover:text-foreground"
+						>
+							<X className="h-3 w-3" />
+						</button>
+					</div>
 					{legendItems.map((item) => (
-						<div key={item.type} className="flex items-center gap-1.5">
+						<div key={item.type} className="mt-1.5 flex items-center gap-1.5 text-sm text-foreground">
 							<span
 								className="h-2.5 w-2.5 shrink-0 rounded-full"
 								style={{ backgroundColor: item.color }}
@@ -238,7 +272,7 @@ export function SpotMapInner({
 					onClick={() => setLegendOpen(true)}
 					aria-label="展開圖例"
 					title="展開圖例"
-					className="absolute top-2 right-2 z-1000 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-border bg-white/90 text-foreground shadow-sm backdrop-blur-sm hover:bg-background"
+					className="absolute top-2 right-2 z-1000 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-border bg-card/90 text-foreground shadow-sm backdrop-blur-sm hover:bg-background"
 				>
 					<Layers className="h-4 w-4" />
 				</button>

@@ -8,10 +8,13 @@ import { useConfirmDelete } from "@/lib/hooks/useConfirmDelete";
 
 interface DeleteTemplateButtonProps {
 	templateId: string;
+	// 外部覆寫樣式，例如列表行內需要無邊框的純文字連結外觀
+	className?: string;
 }
 
 export function DeleteTemplateButton({
 	templateId,
+	className,
 }: DeleteTemplateButtonProps): ReactElement {
 	const { busy, dialogRef, handleConfirm } = useConfirmDelete(() => deleteTemplate(templateId), {
 		errorPrefix: "刪除失敗：",
@@ -23,7 +26,7 @@ export function DeleteTemplateButton({
 				type="button"
 				variant="danger"
 				onClick={() => dialogRef.current?.open()}
-				className="px-3 py-1.5 text-xs"
+				className={className ?? "px-3 py-1.5 text-xs"}
 			>
 				刪除
 			</Button>

@@ -15,19 +15,31 @@ export const passwordSchema = z
 	.regex(/[a-z]/, "密碼需包含小寫英文字母")
 	.regex(/[0-9]/, "密碼需包含數字");
 
-export const registerSchema = z.object({
-	email: z.string().email("請輸入有效的 email"),
-	password: passwordSchema,
-	displayName: z.string().min(1, "請輸入顯示名稱").max(50, "顯示名稱過長"),
-});
+export const registerSchema = z
+	.object({
+		email: z.string().email("請輸入有效的 email"),
+		password: passwordSchema,
+		confirmPassword: z.string(),
+		displayName: z.string().min(1, "請輸入顯示名稱").max(50, "顯示名稱過長"),
+	})
+	.refine((data) => data.password === data.confirmPassword, {
+		message: "兩次輸入的密碼不一致",
+		path: ["confirmPassword"],
+	});
 
 export const forgotPasswordSchema = z.object({
 	email: z.string().email("請輸入有效的 email"),
 });
 
-export const resetPasswordSchema = z.object({
-	password: passwordSchema,
-});
+export const resetPasswordSchema = z
+	.object({
+		password: passwordSchema,
+		confirmPassword: z.string(),
+	})
+	.refine((data) => data.password === data.confirmPassword, {
+		message: "兩次輸入的密碼不一致",
+		path: ["confirmPassword"],
+	});
 
 // 已登入狀態下主動修改密碼：跟 resetPasswordSchema（email 連結重設）不同，
 // 這裡需要額外驗證使用者輸入的目前密碼是否正確

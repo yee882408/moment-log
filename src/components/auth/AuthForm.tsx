@@ -21,10 +21,11 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type Mode = "login" | "register" | "forgot";
 
-// login 模式的 resolver 只認得 email/password，displayName 在表單層級標成可選
-// 讓兩種 schema 的 resolver 都能滿足同一個 useForm 型別
-type AuthFormValues = Omit<RegisterInput, "displayName"> & {
+// login 模式的 resolver 只認得 email/password，displayName、confirmPassword
+// 在表單層級標成可選，讓兩種 schema 的 resolver 都能滿足同一個 useForm 型別
+type AuthFormValues = Omit<RegisterInput, "displayName" | "confirmPassword"> & {
 	displayName?: string;
+	confirmPassword?: string;
 };
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
@@ -90,6 +91,7 @@ export function AuthForm(): ReactElement {
 				: await registerAccount({
 						email: values.email,
 						password: values.password,
+						confirmPassword: values.confirmPassword ?? "",
 						displayName: values.displayName ?? "",
 						turnstileToken,
 					});
@@ -264,6 +266,19 @@ export function AuthForm(): ReactElement {
 								/>
 							)}
 						</Field>
+
+						{mode === "register" && (
+							<Field label="確認密碼" error={errors.confirmPassword?.message}>
+								{(fieldProps) => (
+									<input
+										type="password"
+										{...register("confirmPassword")}
+										{...fieldProps}
+										className={inputClass}
+									/>
+								)}
+							</Field>
+						)}
 
 						{mode === "login" && (
 							<button

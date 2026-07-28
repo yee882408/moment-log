@@ -4,8 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { commentSchema, type CommentInput } from "@/lib/validation/comment";
 import { getCommentsByRecordId, type CommentsPage } from "@/lib/data/comments";
-import { createNotification } from "@/lib/actions/notifications";
-import type { ActionResult } from "@/lib/actions/types";
+import { createNotification } from "@/lib/data/notifications";
+import { toGenericActionError, type ActionResult } from "@/lib/actions/types";
 
 export type CreateCommentResult = { error: string } | { totalPages: number };
 
@@ -36,7 +36,7 @@ export async function createComment(
 		.select("id")
 		.single();
 	if (error) {
-		return { error: error.message };
+		return toGenericActionError(error, "createComment");
 	}
 
 	const { data: record } = await supabase
@@ -54,7 +54,10 @@ export async function createComment(
 		});
 	}
 
+	// 留言只可能發生在公開紀錄上（RLS 擋私密紀錄 insert），但可能是從 /concerts/[id]
+	// 或 /reviews/[id] 任一頁面觸發，兩條路徑都要 revalidate 才能即時反映留言數
 	revalidatePath(`/reviews/${recordId}`);
+	revalidatePath(`/concerts/${recordId}`);
 
 	const { totalPages } = await getCommentsByRecordId(recordId, 1);
 	return { totalPages };
@@ -87,8 +90,9 @@ export async function deleteComment(
 		.eq("id", commentId)
 		.eq("user_id", user.id);
 	if (error) {
-		return { error: error.message };
+		return toGenericActionError(error, "deleteComment");
 	}
 
 	revalidatePath(`/reviews/${recordId}`);
+	revalidatePath(`/concerts/${recordId}`);
 }

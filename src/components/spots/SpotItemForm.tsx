@@ -11,6 +11,7 @@ import type { SpotListItem } from "@/lib/data/spots";
 import { VenueSearch } from "@/components/venue/VenueSearch";
 import { ImageUpload } from "@/components/common/ImageUpload";
 import { Field, inputClass } from "@/components/ui/Field";
+import { FormSection } from "@/components/ui/FormSection";
 import { Button } from "@/components/ui/Button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/Spinner";
@@ -101,77 +102,81 @@ export function SpotItemForm({
 	};
 
 	return (
-		<form onSubmit={handleSubmit(onSubmit)} className="flex w-full flex-col gap-3">
-			<fieldset disabled={isPending} className="flex flex-col gap-3">
-				<VenueSearch onPick={handlePlacePick} />
+		<form onSubmit={handleSubmit(onSubmit)} className="flex w-full flex-col gap-5">
+			<fieldset disabled={isPending} className="flex flex-col gap-5">
+				<FormSection label="地點資訊" noTopBorder>
+					<VenueSearch onPick={handlePlacePick} />
 
-				<Field label="地點名稱" error={errors.placeName?.message}>
-					{(fieldProps) => (
-						<input
-							type="text"
-							{...register("placeName")}
-							{...fieldProps}
-							className={inputClass}
-						/>
+					<Field label="地點名稱" error={errors.placeName?.message}>
+						{(fieldProps) => (
+							<input
+								type="text"
+								{...register("placeName")}
+								{...fieldProps}
+								className={inputClass}
+							/>
+						)}
+					</Field>
+
+					{/* 座標由搜尋帶入，不手動編輯，用 hidden 欄位讓它進表單並能 round-trip */}
+					<input type="hidden" {...register("placeLat")} />
+					<input type="hidden" {...register("placeLng")} />
+					{placeLat != null && placeLng != null ? (
+						<p className="text-xs text-muted-foreground">
+							已定位：{Number(placeLat).toFixed(5)}, {Number(placeLng).toFixed(5)}
+						</p>
+					) : (
+						<p className="text-xs text-muted-foreground">請先用上方搜尋框定位地點</p>
 					)}
-				</Field>
 
-				{/* 座標由搜尋帶入，不手動編輯，用 hidden 欄位讓它進表單並能 round-trip */}
-				<input type="hidden" {...register("placeLat")} />
-				<input type="hidden" {...register("placeLng")} />
-				{placeLat != null && placeLng != null ? (
-					<p className="text-xs text-muted-foreground">
-						已定位：{Number(placeLat).toFixed(5)}, {Number(placeLng).toFixed(5)}
-					</p>
-				) : (
-					<p className="text-xs text-muted-foreground">請先用上方搜尋框定位地點</p>
-				)}
+					<Field label="地點類型（選填）" error={errors.placeType?.message}>
+						{(fieldProps) => (
+							<Select
+								value={placeType || PLACE_TYPE_NONE}
+								onValueChange={(v) =>
+									setValue(
+										"placeType",
+										(v === PLACE_TYPE_NONE ? "" : v) as SpotItemInput["placeType"],
+										{ shouldValidate: true },
+									)
+								}
+							>
+								<SelectTrigger id={fieldProps.id} className="w-full">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value={PLACE_TYPE_NONE}>— 不指定 —</SelectItem>
+									{placeTypeValues.map((v) => (
+										<SelectItem key={v} value={v}>
+											{placeTypeLabels[v]}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						)}
+					</Field>
 
-				<Field label="地點類型（選填）" error={errors.placeType?.message}>
-					{(fieldProps) => (
-						<Select
-							value={placeType || PLACE_TYPE_NONE}
-							onValueChange={(v) =>
-								setValue(
-									"placeType",
-									(v === PLACE_TYPE_NONE ? "" : v) as SpotItemInput["placeType"],
-									{ shouldValidate: true },
-								)
-							}
-						>
-							<SelectTrigger id={fieldProps.id} className="w-full">
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value={PLACE_TYPE_NONE}>— 不指定 —</SelectItem>
-								{placeTypeValues.map((v) => (
-									<SelectItem key={v} value={v}>
-										{placeTypeLabels[v]}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					)}
-				</Field>
+					<Field label="說明（選填）" error={errors.description?.message}>
+						{(fieldProps) => (
+							<textarea
+								rows={3}
+								{...register("description")}
+								{...fieldProps}
+								className={inputClass}
+							/>
+						)}
+					</Field>
+				</FormSection>
 
-				<Field label="說明（選填）" error={errors.description?.message}>
-					{(fieldProps) => (
-						<textarea
-							rows={3}
-							{...register("description")}
-							{...fieldProps}
-							className={inputClass}
-						/>
-					)}
-				</Field>
-
-				<ImageUpload
-					bucket="spot-covers"
-					value={coverImageUrl ?? null}
-					onUploaded={(url) => setValue("coverImageUrl", url)}
-					onRemoved={() => setValue("coverImageUrl", "")}
-				/>
-				<input type="hidden" {...register("coverImageUrl")} />
+				<FormSection label="封面圖片">
+					<ImageUpload
+						bucket="spot-covers"
+						value={coverImageUrl ?? null}
+						onUploaded={(url) => setValue("coverImageUrl", url)}
+						onRemoved={() => setValue("coverImageUrl", "")}
+					/>
+					<input type="hidden" {...register("coverImageUrl")} />
+				</FormSection>
 
 				<div className="flex justify-end gap-2">
 					{onCancel && (
