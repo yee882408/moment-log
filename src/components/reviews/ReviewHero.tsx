@@ -76,8 +76,12 @@ export function ReviewHero({
 						<span className="h-px w-5.5 bg-[#e6c98a]" />
 						{artist}
 					</span>
-					{/* clamp 響應式字級為雜誌封面標題的刻意例外，隨視窗寬度縮放，不套用固定字級 token */}
-					<h1 className="max-w-[14ch] text-[clamp(32px,5.4vw,50px)] leading-[1.08] font-semibold tracking-tight text-balance text-[#fbf5ec]">
+					{/* clamp 響應式字級為雜誌封面標題的刻意例外，隨視窗寬度縮放，不套用固定字級 token；
+					演唱會標題長度落差很大（"aespa 7/24" vs 完整巡演場次名），字級跟寬度上限
+					依標題長度二擋切換，避免長標題被窄欄硬擠成又高又搶眼的多行文字塔 */}
+					<h1
+						className={`${title.length > 20 ? "max-w-[26ch] text-[clamp(24px,3.6vw,36px)]" : "max-w-[14ch] text-[clamp(32px,5.4vw,50px)]"} leading-[1.15] font-semibold tracking-tight text-balance text-[#fbf5ec]`}
+					>
 						{title}
 					</h1>
 				</div>
