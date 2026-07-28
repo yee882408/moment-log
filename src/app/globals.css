@@ -22,12 +22,107 @@
 }
 
 @theme inline {
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-noto-sans-tc);
   --font-mono: var(--font-geist-mono);
+}
+
+/* 全站字級刻度（8 級，最小 10px）：取代先前各處零散的任意 px 數值。
+   Tailwind v4 會依 --text-* 命名自動產生對應的 text-* utility class。 */
+@theme {
+  --text-2xs: 0.625rem;   /* 10px：徽章、最小輔助標籤 */
+  --text-2xs--line-height: 1.4;
+  --text-xs: 0.75rem;     /* 12px：eyebrow 小標籤、次要 meta */
+  --text-xs--line-height: 1.4;
+  --text-sm: 0.875rem;    /* 14px：次要文字、表單說明 */
+  --text-sm--line-height: 1.5;
+  --text-base: 1rem;      /* 16px：正文內文 */
+  --text-base--line-height: 1.6;
+  --text-lg: 1.125rem;    /* 18px：卡片標題、小節標題 */
+  --text-lg--line-height: 1.4;
+  --text-xl: 1.375rem;    /* 22px：頁面內次級大標 */
+  --text-xl--line-height: 1.3;
+  --text-2xl: 1.75rem;    /* 28px：頁面主標題 H1 */
+  --text-2xl--line-height: 1.25;
+  --text-3xl: 2.25rem;    /* 36px：Hero 強調數字 */
+  --text-3xl--line-height: 1.15;
 }
 
 body {
   background: var(--color-background);
   color: var(--color-foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* 心得內文富文本樣式：ReviewEditor（編輯時）與詳情頁（顯示時）共用同一份，
+   確保存檔後看到的排版跟編輯當下一致。專案沒有裝 @tailwindcss/typography，
+   這裡只手刻 Tiptap 目前支援的少數標籤（p/ul/ol/li/strong/em/img）需要的樣式 */
+.rich-text p {
+  margin: 0 0 0.75em;
+}
+.rich-text p:last-child {
+  margin-bottom: 0;
+}
+.rich-text ul,
+.rich-text ol {
+  margin: 0 0 0.75em;
+  padding-left: 1.5em;
+}
+.rich-text ul {
+  list-style-type: disc;
+}
+.rich-text ol {
+  list-style-type: decimal;
+}
+.rich-text li {
+  margin: 0.25em 0;
+}
+.rich-text img {
+  max-width: 100%;
+  border-radius: 0.5rem;
+  margin: 0.5em 0;
+}
+
+/* 雜誌風心得排版（/concerts/[id] 的 ReviewContent variant="plain"）：Georgia
+   襯線字體＋首字放大，取代預設的白底卡片外觀 */
+.article {
+  font-family: Georgia, "Noto Serif TC", serif;
+  font-size: 17px;
+  line-height: 1.85;
+  color: #18130f;
+}
+.article p {
+  margin: 0 0 1.1em;
+}
+.article p:last-child {
+  margin-bottom: 0;
+}
+.article-drop > p:first-of-type::first-letter,
+p.article-drop::first-letter {
+  font-family: Georgia, serif;
+  font-size: 3.4em;
+  float: left;
+  line-height: 0.82;
+  padding: 6px 8px 0 0;
+  color: #7a2e2e;
+  font-weight: 600;
+}
+/* 首字放大的 float 只該影響緊接的文字，後面的清單/圖片等區塊要清掉浮動，
+   否則短內文（例如首段只有一兩個字）會讓下一個區塊被擠到首字旁邊、跟著跑版 */
+.article-drop > :not(:first-child) {
+  clear: left;
+}
+
+/* 追星地圖 marker popup：呼應護照戳章視覺（4px 圓角、細邊框），覆蓋 Leaflet 預設外殼樣式 */
+.leaflet-popup-content-wrapper {
+  border-radius: 4px;
+  border: 1px solid var(--color-border);
+  box-shadow: 0 8px 20px -10px rgba(15, 23, 42, 0.25);
+}
+.leaflet-popup-content {
+  margin: 12px 14px;
+}
+.leaflet-popup-tip {
+  border: 1px solid var(--color-border);
+  border-top: none;
+  border-left: none;
 }

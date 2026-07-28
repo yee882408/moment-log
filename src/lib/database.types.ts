@@ -62,8 +62,10 @@ export type Database = {
           rating: number | null
           review: string | null
           search_vector: unknown
+          seat_info: string | null
           spotify_playlist_id: string | null
           template_id: string | null
+          ticket_currency: string
           ticket_price: number | null
           title: string
           user_id: string
@@ -81,8 +83,10 @@ export type Database = {
           rating?: number | null
           review?: string | null
           search_vector?: unknown
+          seat_info?: string | null
           spotify_playlist_id?: string | null
           template_id?: string | null
+          ticket_currency?: string
           ticket_price?: number | null
           title: string
           user_id: string
@@ -100,8 +104,10 @@ export type Database = {
           rating?: number | null
           review?: string | null
           search_vector?: unknown
+          seat_info?: string | null
           spotify_playlist_id?: string | null
           template_id?: string | null
+          ticket_currency?: string
           ticket_price?: number | null
           title?: string
           user_id?: string
@@ -134,8 +140,8 @@ export type Database = {
           date: string
           id: string
           title: string
-          venue_lat: number
-          venue_lng: number
+          venue_lat: number | null
+          venue_lng: number | null
           venue_name: string
         }
         Insert: {
@@ -145,8 +151,8 @@ export type Database = {
           date: string
           id?: string
           title: string
-          venue_lat: number
-          venue_lng: number
+          venue_lat?: number | null
+          venue_lng?: number | null
           venue_name: string
         }
         Update: {
@@ -156,8 +162,8 @@ export type Database = {
           date?: string
           id?: string
           title?: string
-          venue_lat?: number
-          venue_lng?: number
+          venue_lat?: number | null
+          venue_lng?: number | null
           venue_name?: string
         }
         Relationships: [
@@ -594,8 +600,10 @@ export type Database = {
           like_count: number | null
           rating: number | null
           review: string | null
+          seat_info: string | null
           spotify_playlist_id: string | null
           template_id: string | null
+          ticket_currency: string | null
           ticket_price: number | null
           title: string | null
           user_id: string | null
@@ -615,8 +623,10 @@ export type Database = {
           like_count?: never
           rating?: number | null
           review?: string | null
+          seat_info?: string | null
           spotify_playlist_id?: string | null
           template_id?: string | null
+          ticket_currency?: string | null
           ticket_price?: number | null
           title?: string | null
           user_id?: string | null
@@ -636,8 +646,10 @@ export type Database = {
           like_count?: never
           rating?: number | null
           review?: string | null
+          seat_info?: string | null
           spotify_playlist_id?: string | null
           template_id?: string | null
+          ticket_currency?: string | null
           ticket_price?: number | null
           title?: string | null
           user_id?: string | null

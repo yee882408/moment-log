@@ -12,6 +12,7 @@ import {
 } from "@/lib/data/records";
 import { upsertTagsByName } from "@/lib/actions/tags";
 import { toGenericActionError, type ActionResult } from "@/lib/actions/types";
+import { sanitizeReviewHtml } from "@/lib/richtext/sanitize";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 
@@ -61,9 +62,13 @@ function toRow(v: RecordInput) {
 		venue_lat: v.venueLat ?? null,
 		venue_lng: v.venueLng ?? null,
 		date: v.date,
+		seat_info: v.seatInfo || null,
 		ticket_price: v.ticketPrice ?? null,
+		ticket_currency: v.ticketCurrency,
 		rating: v.rating ?? null,
-		review: v.review || null,
+		// Tiptap 編輯器輸出 HTML，寫入前一定要 sanitize：使用者可繞過前端直接
+		// 呼叫這支 Server Action，帶入任意字串（例如含 <script>/onerror 的 payload）
+		review: v.review ? sanitizeReviewHtml(v.review) : null,
 		spotify_playlist_id: v.spotifyPlaylistId || null,
 		cover_image_url: v.coverImageUrl || null,
 		is_public: v.isPublic,

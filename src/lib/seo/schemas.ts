@@ -1,5 +1,6 @@
 import type { PublicReviewDetail } from "@/lib/data/reviews";
 import type { SpotListWithItems } from "@/lib/data/spots";
+import { htmlToPlainText } from "@/lib/richtext/plainText";
 
 // Review schema：itemReviewed 用 Event 描述被評論的演唱會本身，
 // reviewRating 選填（使用者可以不評分），沒有評分就不放這個欄位，
@@ -33,7 +34,7 @@ export function buildReviewJsonLd(review: PublicReviewDetail): object {
 				worstRating: 1,
 			},
 		}),
-		...(review.review && { reviewBody: review.review }),
+		...(review.review && { reviewBody: htmlToPlainText(review.review) }),
 	};
 }
 

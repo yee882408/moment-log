@@ -31,8 +31,8 @@ create table public.concerts (
 	title text not null check (char_length(title) <= 200),
 	artist text not null check (char_length(artist) <= 200),
 	venue_name text not null check (char_length(venue_name) <= 200),
-	venue_lat double precision not null, -- 經 Nominatim geocoding 取得
-	venue_lng double precision not null,
+	venue_lat double precision, -- 選填：範本表單已移除定位 UI，欄位僅保留供既有資料 round-trip
+	venue_lng double precision,
 	date date not null,
 	created_by uuid references public.profiles(id),
 	created_at timestamptz not null default now()
@@ -53,8 +53,12 @@ create table public.concert_records (
 	date date not null,
 	cover_image_url text,
 	ticket_price integer,
+	ticket_currency text not null default 'TWD' check (ticket_currency in ('TWD', 'JPY', 'KRW', 'USD')),
+	seat_info text check (seat_info is null or char_length(seat_info) <= 200), -- 選填，當天實際坐的座位區域
 	rating smallint check (rating between 1 and 5),
-	review text check (review is null or char_length(review) <= 5000),
+	-- 存 Tiptap 編輯器輸出的 HTML（含排版標籤/圖片 URL），上限比純文字時期
+	-- 寬鬆，對應 recordSchema 的 20000 字元上限
+	review text check (review is null or char_length(review) <= 20000),
 	is_public boolean not null default false,
 	spotify_playlist_id text check (spotify_playlist_id is null or char_length(spotify_playlist_id) <= 200),
 	created_at timestamptz not null default now()
@@ -70,13 +74,16 @@ create index concert_records_user_idx on public.concert_records (user_id);
 -- 'simple' 只做 tokenizing+lowercase、不做 stemming，是中英混雜內容缺乏中文分詞器時
 -- 最不會誤傷的通用選擇（曾嘗試疊加 pg_trgm 補中文子字串比對，但雜訊字串會被誤判為相似，
 -- 調門檻無法兩全，已拿掉，見下方 RPC function 的說明）
+-- review 欄位改用 Tiptap 富文本編輯器後存的是 HTML（見第 12 節 migration 說明），
+-- 這裡用 regexp_replace 先去除 HTML 標籤再進 to_tsvector，否則 <p>/<strong> 這類
+-- 標籤語法會被當成一般詞彙進索引，變成搜尋雜訊
 alter table public.concert_records
 	add column search_vector tsvector
 	generated always as (
 		setweight(to_tsvector('simple', coalesce(title, '')), 'A')
 		|| setweight(to_tsvector('simple', coalesce(artist, '')), 'B')
 		|| setweight(to_tsvector('simple', coalesce(venue_name, '')), 'B')
-		|| setweight(to_tsvector('simple', coalesce(review, '')), 'C')
+		|| setweight(to_tsvector('simple', regexp_replace(coalesce(review, ''), '<[^>]*>', ' ', 'g')), 'C')
 	) stored;
 
 -- GIN index 給 tsvector 用（全文搜尋 @@ 比對加速）
@@ -238,7 +245,7 @@ create table public.record_comments (
 	id uuid primary key default gen_random_uuid(),
 	user_id uuid not null references public.profiles(id) on delete cascade,
 	record_id uuid not null references public.concert_records(id) on delete cascade,
-	body text not null check (char_length(body) between 1 and 1000),
+	body text not null check (char_length(body) between 1 and 200),
 	created_at timestamptz not null default now()
 );
 -- 詳情頁依時間列出該篇留言用
@@ -600,6 +607,85 @@ grant execute on function public.custom_access_token_hook to supabase_auth_admin
 revoke execute on function public.custom_access_token_hook from authenticated, anon, public;
 
 -- ------------------------------------------------------------
+-- 8-3. 登入失敗次數限制：連續 5 次密碼錯誤鎖定 15 分鐘，以 email 計算
+--      is_login_locked 在登入前（尚無 session）就要能查詢，維持匿名可查，且僅回傳
+--      boolean，不修改資料、不構成濫用風險；查無帳號一律回 false，跟 is_login_locked
+--      以外的登入錯誤訊息一樣不透露帳號是否存在
+-- ------------------------------------------------------------
+alter table public.profiles
+	add column failed_login_count int not null default 0,
+	add column locked_until timestamptz;
+
+create or replace function public.is_login_locked(target_email text)
+returns boolean
+language sql
+security definer set search_path = ''
+stable
+as $$
+	select coalesce(
+		(
+			select p.locked_until > now()
+			from public.profiles p
+			join auth.users u on u.id = p.id
+			where u.email = target_email
+		),
+		false
+	);
+$$;
+
+-- register_login_failure / reset_login_failure 兩支會修改資料，且必須在使用者登入前
+-- （尚無 session、無法用 auth.uid() 限制呼叫者）就能被呼叫，若單純開放給 anon 角色
+-- 匿名呼叫，任何人都能不透過 login() Server Action、直接對任意受害者 email 連呼 5 次
+-- 把對方帳號鎖死（變相 DoS）。用一組只有伺服器端知道的密鑰把關，密鑰存在 Supabase
+-- Vault（而非 alter database set 自訂參數——託管環境的一般角色沒有 superuser
+-- 權限，無法設定自訂 GUC，實測會噴 42501 permission denied）。
+-- 這組密鑰需要另外在 Supabase Dashboard 的 SQL Editor 執行一次：
+--   select vault.create_secret('<自訂一組隨機密鑰>', 'login_lock_secret');
+-- 並在 .env.local 設定同樣的值到 LOGIN_LOCK_SECRET，兩邊要一致
+create or replace function public.register_login_failure(target_email text, secret text)
+returns void
+language plpgsql
+security definer set search_path = ''
+as $$
+begin
+	if secret is distinct from (
+		select decrypted_secret from vault.decrypted_secrets where name = 'login_lock_secret'
+	) then
+		raise exception 'not authorized';
+	end if;
+
+	update public.profiles p
+	set
+		failed_login_count = p.failed_login_count + 1,
+		locked_until = case
+			when p.failed_login_count + 1 >= 5 then now() + interval '15 minutes'
+			else p.locked_until
+		end
+	from auth.users u
+	where u.id = p.id and u.email = target_email;
+end;
+$$;
+
+create or replace function public.reset_login_failure(target_email text, secret text)
+returns void
+language plpgsql
+security definer set search_path = ''
+as $$
+begin
+	if secret is distinct from (
+		select decrypted_secret from vault.decrypted_secrets where name = 'login_lock_secret'
+	) then
+		raise exception 'not authorized';
+	end if;
+
+	update public.profiles p
+	set failed_login_count = 0, locked_until = null
+	from auth.users u
+	where u.id = p.id and u.email = target_email;
+end;
+$$;
+
+-- ------------------------------------------------------------
 -- 9-1. 統計儀表板：依月分組的場次數，Supabase JS 沒有 group-by 語法，
 --      改在資料庫端用 date_trunc + group by 聚合
 --      security invoker（預設）+ auth.uid() 過濾，只回傳呼叫者自己的資料，不繞過 RLS
@@ -781,3 +867,124 @@ alter table public.spot_lists
 alter table public.spot_list_items
 	add constraint spot_list_items_place_name_len check (char_length(place_name) <= 200),
 	add constraint spot_list_items_description_len check (description is null or char_length(description) <= 2000);
+
+-- ------------------------------------------------------------
+-- 12. migration：心得內文改用 Tiptap 富文本編輯器（存 HTML，不再是純文字）
+--     影響範圍：
+--     1. review 的長度上限從 5000 放寬到 20000（HTML 標籤/圖片 URL 會讓
+--        字數膨脹，應用層 recordSchema 也已同步調整）
+--     2. search_vector 這個 generated column 需要 drop 重建：原本直接把
+--        review 丟進 to_tsvector，現在要先用 regexp_replace 去除 HTML 標籤
+--        才不會把 <p>/<strong> 這類標籤語法當成詞彙混進搜尋索引。
+--        Postgres 不允許直接改 generated column 的運算式，只能 drop 再
+--        add，這會連帶砍掉建立在該欄位上的 GIN index（下面重建）
+--     3. drop + add generated column 需要對全表重新計算這個欄位的值
+--        （rewrite table），若資料量變大要留意鎖表時間，目前資料量小可
+--        直接執行
+--     4. 舊資料（純文字，無 HTML 標籤）不需要另外轉換：純文字本身就是
+--        合法的極簡內容，正規化只在使用者下次編輯存檔時才會升級成 HTML，
+--        應用層的顯示邏輯（ReviewContent）用「內容裡有沒有 <」判斷要走
+--        純文字渲染還是 HTML 渲染兩種路徑，兩者並存不衝突
+--     實測發現這個資料庫上的 concert_records.review 目前完全沒有 check
+--     constraint（這張表建立時間早於 schema.sql 加上長度限制那段），
+--     所以這裡不假設既有 constraint 名稱，用 if exists 防呆後直接補上新的
+-- ------------------------------------------------------------
+alter table public.concert_records
+	drop constraint if exists concert_records_review_check;
+alter table public.concert_records
+	add constraint concert_records_review_check
+	check (review is null or char_length(review) <= 20000);
+
+alter table public.concert_records drop column search_vector;
+alter table public.concert_records
+	add column search_vector tsvector
+	generated always as (
+		setweight(to_tsvector('simple', coalesce(title, '')), 'A')
+		|| setweight(to_tsvector('simple', coalesce(artist, '')), 'B')
+		|| setweight(to_tsvector('simple', coalesce(venue_name, '')), 'B')
+		|| setweight(to_tsvector('simple', regexp_replace(coalesce(review, ''), '<[^>]*>', ' ', 'g')), 'C')
+	) stored;
+
+create index concert_records_search_vector_idx on public.concert_records using gin (search_vector);
+
+-- ------------------------------------------------------------
+-- 13. migration：新增座位區域欄位（當天實際坐的座位/區域，選填自由文字，
+--     例如「內野2區 A15」），跟 venue_name 一樣列公開資訊、不進全文搜尋索引
+--     上面的 create table 定義已經內建這個欄位，這段只給「資料庫已經建過表」
+--     的既有環境執行用（新環境從頭跑這份 schema.sql 不需要再跑這段）
+-- ------------------------------------------------------------
+alter table public.concert_records
+	add column seat_info text check (seat_info is null or char_length(seat_info) <= 200);
+
+-- ------------------------------------------------------------
+-- 14. migration：新增票價幣別欄位。既有資料的票價一律視為台幣，預設值
+--     'TWD' 讓舊資料 backfill 後仍維持原本的顯示行為（NT$ 開頭）
+--     上面的 create table 定義已經內建這個欄位，這段只給「資料庫已經建過表」
+--     的既有環境執行用（新環境從頭跑這份 schema.sql 不需要再跑這段）
+-- ------------------------------------------------------------
+alter table public.concert_records
+	add column ticket_currency text not null default 'TWD'
+	check (ticket_currency in ('TWD', 'JPY', 'KRW', 'USD'));
+
+-- ------------------------------------------------------------
+-- 15. migration：重建 concert_records_with_like_count view，讓它反映第 13、14
+--     節新增的 seat_info、ticket_currency 欄位。Postgres 的 view 在建立當下
+--     會把 `select r.*` 展開成固定的欄位清單存進 view 定義，之後 concert_records
+--     本身新增欄位並不會讓既有 view 自動同步——即使 view 定義寫的是 `r.*`，
+--     那只是「查詢時怎麼寫」，view 的 output 欄位仍是建立當下就固定的。
+--     這裡不能用 create or replace view：新欄位插在 concert_records 中間
+--     （ticket_price 之後），導致 r.* 展開順序跟原本 view 定義的欄位順序不同，
+--     Postgres 會把「順序變了」誤判成「改欄位名稱」而拒絕（42P16 錯誤，
+--     提示要用 ALTER VIEW RENAME COLUMN，但那是改名不是我們要的效果）。
+--     只能先 drop 再重建；這個 view 沒有其他 view/RLS policy 疊在它上面
+--     （security_invoker=true 代表它沿用 concert_records 本身的 RLS，
+--     不是獨立設定），drop 重建不影響權限行為
+-- ------------------------------------------------------------
+drop view if exists public.concert_records_with_like_count;
+
+create view public.concert_records_with_like_count
+with (security_invoker = true)
+as
+select
+	r.*,
+	(select count(*) from public.record_likes l where l.record_id = r.id) as like_count,
+	r.date::text as date_text,
+	(select count(*) from public.record_comments c where c.record_id = r.id) as comment_count
+from public.concert_records r;
+
+-- ------------------------------------------------------------
+-- 16. migration：留言字數上限從 1000 收緊到 200，跟應用層 commentSchema
+--     同步調整。inline check constraint 沒有明確命名，用 information_schema
+--     動態找出實際 constraint 名稱再 drop，不寫死猜測的名稱字串
+--     上面的 create table 定義已經內建這個上限，這段只給「資料庫已經建過表」
+--     的既有環境執行用（新環境從頭跑這份 schema.sql 不需要再跑這段）
+-- ------------------------------------------------------------
+do $$
+declare
+	constraint_name text;
+begin
+	select con.conname into constraint_name
+	from pg_constraint con
+	join pg_class rel on rel.oid = con.conrelid
+	where rel.relname = 'record_comments'
+		and con.contype = 'c'
+		and pg_get_constraintdef(con.oid) like '%char_length(body)%';
+
+	if constraint_name is not null then
+		execute format('alter table public.record_comments drop constraint %I', constraint_name);
+	end if;
+end $$;
+
+alter table public.record_comments
+	add constraint record_comments_body_check check (char_length(body) between 1 and 200);
+
+-- ------------------------------------------------------------
+-- 17. migration：範本管理表單移除場館定位（VenueSearch）UI，改回純文字
+--     場館名稱輸入，比照 concert_records 的做法。concerts.venue_lat/
+--     venue_lng 因此不再保證有值，放寬為可為 null；上面的 create table
+--     定義已經內建這個放寬，這段只給「資料庫已經建過表」的既有環境執行用
+--     （新環境從頭跑這份 schema.sql 不需要再跑這段）
+-- ------------------------------------------------------------
+alter table public.concerts
+	alter column venue_lat drop not null,
+	alter column venue_lng drop not null;

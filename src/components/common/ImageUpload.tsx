@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import type { DragEvent, ReactElement } from "react";
 import { toast } from "sonner";
-import { createClient } from "@/lib/supabase/client";
+import { uploadImageToBucket } from "@/lib/storage/upload";
 import { CoverImage } from "@/components/ui/CoverImage";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/Spinner";
@@ -19,8 +19,6 @@ interface ImageUploadProps {
 	fallbackText?: string; // shape="circle" 且無圖時顯示（例如 displayName 首字）
 }
 
-const MAX_SIZE = 5 * 1024 * 1024; // 5MB，需與 Storage bucket 設定一致
-
 export function ImageUpload({
 	value,
 	onUploaded,
@@ -35,40 +33,14 @@ export function ImageUpload({
 	const inputRef = useRef<HTMLInputElement>(null);
 
 	const uploadFile = async (file: File): Promise<void> => {
-		// 前端先擋（Storage policy 是最終防線）
-		if (!file.type.startsWith("image/")) {
-			toast.error("只能上傳圖片");
-			return;
-		}
-		if (file.size > MAX_SIZE) {
-			toast.error("檔案需小於 5MB");
-			return;
-		}
-
 		setUploading(true);
-		const supabase = createClient();
-		const {
-			data: { user },
-		} = await supabase.auth.getUser();
-		if (!user) {
-			toast.error("尚未登入");
-			setUploading(false);
-			return;
-		}
-
-		// 路徑第一段 = uid，才符合 Storage RLS（各 bucket 的 xxx_insert_own policy）
-		const ext = file.name.split(".").pop() ?? "jpg";
-		const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
-		const { error: upErr } = await supabase.storage.from(bucket).upload(path, file);
-		if (upErr) {
-			toast.error(upErr.message);
-			setUploading(false);
-			return;
-		}
-
-		const { data } = supabase.storage.from(bucket).getPublicUrl(path);
-		onUploaded(data.publicUrl);
+		const result = await uploadImageToBucket(bucket, file);
 		setUploading(false);
+		if ("error" in result) {
+			toast.error(result.error);
+			return;
+		}
+		onUploaded(result.url);
 	};
 
 	const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
@@ -113,7 +85,7 @@ export function ImageUpload({
 				className={cn(
 					"relative flex cursor-pointer items-center justify-center overflow-hidden border-2 border-dashed transition-colors",
 					boxSizeClass,
-					dragging ? "border-primary bg-primary/5" : "border-border hover:border-primary/50",
+					dragging ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
 				)}
 			>
 				{value ? (
@@ -142,7 +114,7 @@ export function ImageUpload({
 							<span className="text-xl text-muted-foreground">{fallbackText[0]}</span>
 						) : (
 							<>
-								<span className="text-2xl text-muted-foreground">📷</span>
+								{/* <span className="text-2xl text-muted-foreground">📷</span> */}
 								{!isCircle && (
 									<span className="text-xs text-muted-foreground">
 										拖曳圖片到這裡，或點擊選擇檔案
