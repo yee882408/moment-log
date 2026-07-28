@@ -40,6 +40,10 @@ interface UseListSearchResult<TItem, TSort extends string> {
 	handleSortChange: (nextSort: TSort) => void;
 	handleTagsApply: (nextTags: TagOption[]) => void;
 	handlePageChange: (nextPage: number) => void;
+	// 用目前的 keyword/sort/selectedTags 重新查一次第 1 頁；給呼叫端有「hook 不知道
+	// 但會影響查詢結果」的額外條件時用（例如 SpotBrowser 切換我的/公開清單 tab），
+	// 呼叫端的 search callback 自行從 closure 讀取這類額外條件
+	refetch: () => void;
 }
 
 // 共用搜尋列表邏輯：state、debounce as-you-type、URL 同步、排序/標籤/換頁 handler。
@@ -126,5 +130,6 @@ export function useListSearch<TItem, TSort extends string>({
 			runSearch(1, keyword, sort, nextTags);
 		},
 		handlePageChange: (nextPage) => runSearch(nextPage, keyword, sort, selectedTags),
+		refetch: () => runSearch(1, keyword, sort, selectedTags),
 	};
 }

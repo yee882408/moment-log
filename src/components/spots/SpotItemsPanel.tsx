@@ -45,7 +45,8 @@ export function SpotItemsPanel({
 	} | null>(null);
 	const [focusedId, setFocusedId] = useState<string | null>(null);
 	const [sidebarOpen, setSidebarOpen] = useState(true);
-	const [addModalOpen, setAddModalOpen] = useState(false);
+	// null = Modal 關閉；undefined = 新增模式；SpotListItem = 編輯該筆
+	const [editTarget, setEditTarget] = useState<SpotListItem | "new" | null>(null);
 	const [isRefetching, startTransition] = useTransition();
 
 	const refetch = (): void => {
@@ -61,19 +62,36 @@ export function SpotItemsPanel({
 		refetch();
 	};
 
-	const handleAdded = (newItems: SpotListItem[]): void => {
+	const handleModalSaved = (newItems: SpotListItem[]): void => {
 		setItems(newItems);
-		setAddModalOpen(false);
+		setEditTarget(null);
+		setPreviewPoint(null);
+	};
+
+	const handleModalClose = (open: boolean): void => {
+		if (!open) {
+			setEditTarget(null);
+			setPreviewPoint(null);
+		}
 	};
 
 	const listContent = (
 		<>
-			{canEdit && (
-				<Button type="button" className="w-full" onClick={() => setAddModalOpen(true)}>
-					<Plus className="h-4 w-4" />
-					新增地點
-				</Button>
-			)}
+			<div className="flex flex-col gap-2.5">
+				<div className="flex items-center justify-between">
+					<span className="text-xl font-semibold text-foreground">地點列表</span>
+					<span className="flex h-5.5 min-w-5.5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-bold text-primary-foreground">
+						{items.length}
+					</span>
+				</div>
+
+				{canEdit && (
+					<Button type="button" className="w-full" onClick={() => setEditTarget("new")}>
+						<Plus className="h-4 w-4" />
+						新增地點
+					</Button>
+				)}
+			</div>
 
 			{isRefetching ? (
 				<div className="flex justify-center py-6">
@@ -93,8 +111,7 @@ export function SpotItemsPanel({
 								canEdit={canEdit}
 								isFocused={focusedId === item.id}
 								onDeleted={handleDeleted}
-								onSaved={setItems}
-								onPreviewChange={setPreviewPoint}
+								onEdit={() => setEditTarget(item)}
 								onFocus={() => setFocusedId(item.id)}
 							/>
 						))}
@@ -104,15 +121,16 @@ export function SpotItemsPanel({
 		</>
 	);
 
-	const addModal = canEdit && (
-		<Dialog open={addModalOpen} onOpenChange={setAddModalOpen}>
+	const editModal = canEdit && (
+		<Dialog open={editTarget !== null} onOpenChange={handleModalClose}>
 			<DialogContent>
-				<DialogTitle>新增地點</DialogTitle>
+				<DialogTitle>{editTarget === "new" ? "新增地點" : "編輯地點"}</DialogTitle>
 				<div className="mt-4">
 					<SpotItemForm
 						listId={listId}
-						onSaved={handleAdded}
-						onCancel={() => setAddModalOpen(false)}
+						editItem={editTarget === "new" || editTarget === null ? undefined : editTarget}
+						onSaved={handleModalSaved}
+						onCancel={() => handleModalClose(false)}
 						onPreviewChange={setPreviewPoint}
 					/>
 				</div>
@@ -154,7 +172,7 @@ export function SpotItemsPanel({
 					{sidebarOpen ? <PanelLeftClose className="h-5 w-5" /> : <PanelLeftOpen className="h-5 w-5" />}
 				</button>
 				<div
-					className={`absolute inset-y-0 left-0 z-1000 flex w-96 flex-col gap-6 overflow-y-auto border-r border-border bg-white/95 p-4 pt-16 shadow-lg backdrop-blur-sm transition-transform ${
+					className={`absolute inset-y-0 left-0 z-1000 flex w-96 flex-col gap-5 overflow-y-auto border-r border-border bg-white/95 p-4 pt-13 shadow-lg backdrop-blur-sm transition-transform ${
 						sidebarOpen ? "translate-x-0" : "-translate-x-full"
 					}`}
 				>
@@ -162,7 +180,7 @@ export function SpotItemsPanel({
 				</div>
 			</div>
 
-			{addModal}
+			{editModal}
 		</>
 	);
 }
