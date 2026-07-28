@@ -68,7 +68,7 @@ export default async function UserProfilePage({
 				</p>
 			)}
 
-			<LikeCountReviewGrid reviews={reviews} maxItemsPerPage={9} />
+			<LikeCountReviewGrid reviews={reviews} />
 
 			<Pagination
 				currentPage={page}

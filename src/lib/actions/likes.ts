@@ -54,5 +54,9 @@ export async function toggleLike(
 		}
 	}
 
+	// 按讚只可能發生在公開紀錄上（RLS 擋私密紀錄 insert），但這篇紀錄可能是從
+	// /concerts/[id] 或 /reviews/[id] 任一頁面觸發的操作，兩條路徑都要 revalidate
+	// 才能讓讚數即時反映；對不存在快取的路徑呼叫是安全的 no-op
 	revalidatePath(`/reviews/${recordId}`);
+	revalidatePath(`/concerts/${recordId}`);
 }

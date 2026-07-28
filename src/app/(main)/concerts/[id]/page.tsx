@@ -3,11 +3,11 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getRecordById } from "@/lib/data/records";
+import { getRelatedReviewsByArtist } from "@/lib/data/reviews";
+import { getLikeState } from "@/lib/data/likes";
+import { getCommentsByRecordId } from "@/lib/data/comments";
 import { DeleteRecordButton } from "@/components/concerts/DeleteRecordButton";
-import { Card } from "@/components/ui/Card";
-import { Badge, StarRating } from "@/components/ui/Badge";
-import { CoverImage } from "@/components/ui/CoverImage";
-import { Button } from "@/components/ui/Button";
+import { RecordDetailBody } from "@/components/reviews/RecordDetailBody";
 
 interface PageProps {
 	params: Promise<{ id: string }>;
@@ -31,86 +31,50 @@ export default async function RecordDetailPage({
 		notFound(); // 找不到或不是自己的 → 404
 	}
 
+	// 讚/留言只可能發生在公開紀錄上（RLS 擋私密紀錄 insert），私密紀錄查這些
+	// 一定是空結果；相關心得同理只查公開紀錄，私密紀錄不需要查（也沒有意義）
+	const [likeState, commentsPage, relatedReviews] = await Promise.all([
+		getLikeState(id, user.id),
+		getCommentsByRecordId(id, 1),
+		record.is_public ? getRelatedReviewsByArtist(record.artist, id) : Promise.resolve([]),
+	]);
+
 	return (
-		<main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 p-6">
-			<div className="flex items-center justify-between">
-				<Link
-					href="/concerts"
-					className="text-sm text-muted-foreground hover:underline"
-				>
-					← 返回列表
-				</Link>
-				<div className="flex gap-2">
-					<Button asChild variant="secondary">
-						<Link href={`/concerts/${record.id}/edit`}>編輯</Link>
-					</Button>
-					<DeleteRecordButton recordId={record.id} />
-				</div>
-			</div>
-
-			<header className="flex flex-col gap-2">
-				<div className="flex items-center gap-2">
-					<h1 className="text-2xl font-semibold text-foreground">
-						{record.title}
-					</h1>
-					{record.is_public && <Badge variant="public">公開</Badge>}
-				</div>
-				<p className="text-muted-foreground">{record.artist}</p>
-				<div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-					<span>{record.venue_name}</span>
-					<span>·</span>
-					<span>{record.date}</span>
-					{record.ticket_price != null && (
-						<>
-							<span>·</span>
-							<span>NT${record.ticket_price}</span>
-						</>
-					)}
-					{record.rating != null && <StarRating value={record.rating} />}
-				</div>
-				{record.tags.length > 0 && (
-					<div className="flex flex-wrap gap-1.5">
-						{record.tags.map((tag) => (
-							<Badge key={tag.id} variant="neutral">
-								{tag.name}
-							</Badge>
-						))}
-					</div>
-				)}
-			</header>
-
-			{record.cover_image_url && (
-				<CoverImage
-					src={record.cover_image_url}
-					alt={record.title}
-					width={672}
-					height={378}
-					className="w-full rounded-xl object-cover"
-				/>
-			)}
-
-			{record.spotify_playlist_id && (
-				<div className="flex flex-col gap-1">
-					<iframe
-						title="Spotify 歌單"
-						src={`https://open.spotify.com/embed/playlist/${record.spotify_playlist_id}`}
-						width="100%"
-						height="352"
-						loading="lazy"
-						allow="encrypted-media"
-						className="rounded-xl"
+		<RecordDetailBody
+			id={record.id}
+			userId={record.user_id}
+			title={record.title}
+			artist={record.artist}
+			venueName={record.venue_name}
+			date={record.date}
+			seatInfo={record.seat_info}
+			rating={record.rating}
+			tags={record.tags}
+			coverImageUrl={record.cover_image_url}
+			review={record.review}
+			spotifyPlaylistId={record.spotify_playlist_id}
+			author={record.author}
+			authorAvatarUrl={record.author_avatar_url}
+			isPublic={record.is_public}
+			ticketPrice={record.ticket_price}
+			ticketCurrency={record.ticket_currency}
+			backHref="/concerts"
+			backLabel="← 返回列表"
+			currentUserId={user.id}
+			likeState={likeState}
+			commentsPage={commentsPage}
+			relatedReviews={relatedReviews}
+			topbarActions={
+				<>
+					<Link href={`/concerts/${record.id}/edit`} className="text-[#18130f] hover:underline">
+						編輯
+					</Link>
+					<DeleteRecordButton
+						recordId={record.id}
+						className="border-0 bg-transparent p-0 text-[#7a2e2e] hover:bg-transparent hover:underline"
 					/>
-					<p className="text-xs text-muted-foreground">
-						若歌單未正常顯示，可能是非公開歌單或已被刪除。
-					</p>
-				</div>
-			)}
-
-			{record.review && (
-				<Card className="whitespace-pre-wrap text-sm leading-7 text-foreground">
-					{record.review}
-				</Card>
-			)}
-		</main>
+				</>
+			}
+		/>
 	);
 }

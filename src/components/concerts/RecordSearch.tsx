@@ -5,7 +5,6 @@ import Link from "next/link";
 import { searchMyRecords } from "@/lib/actions/records";
 import type { RecordListItem, RecordSort } from "@/lib/data/records";
 import { ReviewGrid } from "@/components/reviews/ReviewGrid";
-import { Badge } from "@/components/ui/Badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/Spinner";
 import { PaginationControls } from "@/components/ui/PaginationControls";
@@ -59,7 +58,7 @@ export function RecordSearch({
 		<div className="flex flex-col gap-6">
 			<form
 				onSubmit={handleSubmit}
-				className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-white p-3"
+				className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-card p-3 shadow-sm"
 			>
 				<div className="relative flex-1 min-w-48">
 					<input
@@ -123,11 +122,10 @@ export function RecordSearch({
 
 					<ReviewGrid
 						reviews={records}
-						buildHref={(r) => (r.is_public ? `/reviews/${r.id}?from=concerts` : `/concerts/${r.id}`)}
+						buildHref={(r) => `/concerts/${r.id}`}
 						renderFooter={(r) =>
 							r.is_public ? (
 								<>
-									<Badge variant="public">公開</Badge>
 									<span>♥ {r.like_count}</span>
 									<span>⬒ {r.comment_count}</span>
 									<Link

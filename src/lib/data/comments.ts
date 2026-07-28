@@ -10,6 +10,7 @@ export interface RecordComment {
 	body: string;
 	created_at: string;
 	author: string | null; // profiles.display_name
+	author_avatar_url: string | null;
 }
 
 export interface CommentsPage {
@@ -29,7 +30,7 @@ export async function getCommentsByRecordId(
 
 	const { data, error, count } = await supabase
 		.from("record_comments")
-		.select("id, user_id, body, created_at, profiles(display_name)", {
+		.select("id, user_id, body, created_at, profiles(display_name, avatar_url)", {
 			count: "exact",
 		})
 		.eq("record_id", recordId)
@@ -46,6 +47,7 @@ export async function getCommentsByRecordId(
 		body: c.body,
 		created_at: c.created_at,
 		author: c.profiles?.display_name ?? null,
+		author_avatar_url: c.profiles?.avatar_url ?? null,
 	}));
 
 	const totalCount = count ?? 0;

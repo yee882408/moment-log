@@ -33,15 +33,12 @@ interface StarRatingProps {
 	value: number;
 }
 
-// 評分星星（1-5），實心 amber / 空心 slate
+// 評分星星（1-5），實心 primary / 空心 slate
 export function StarRating({ value }: StarRatingProps): ReactElement {
 	return (
 		<span className="inline-flex text-sm" aria-label={`評分 ${value} 分`}>
 			{Array.from({ length: 5 }, (_, i) => (
-				<span
-					key={i}
-					className={i < value ? "text-warning" : "text-slate-300"}
-				>
+				<span key={i} className={i < value ? "text-primary" : "text-slate-300"}>
 					★
 				</span>
 			))}

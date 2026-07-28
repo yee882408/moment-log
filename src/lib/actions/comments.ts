@@ -54,7 +54,10 @@ export async function createComment(
 		});
 	}
 
+	// 留言只可能發生在公開紀錄上（RLS 擋私密紀錄 insert），但可能是從 /concerts/[id]
+	// 或 /reviews/[id] 任一頁面觸發，兩條路徑都要 revalidate 才能即時反映留言數
 	revalidatePath(`/reviews/${recordId}`);
+	revalidatePath(`/concerts/${recordId}`);
 
 	const { totalPages } = await getCommentsByRecordId(recordId, 1);
 	return { totalPages };
@@ -91,4 +94,5 @@ export async function deleteComment(
 	}
 
 	revalidatePath(`/reviews/${recordId}`);
+	revalidatePath(`/concerts/${recordId}`);
 }
