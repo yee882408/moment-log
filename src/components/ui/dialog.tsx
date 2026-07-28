@@ -45,8 +45,10 @@ function DialogContent({
 			<DialogPrimitive.Content
 				data-slot="dialog-content"
 				className={cn(
-					// z-index 需高於 SpotItemsPanel 浮動側欄的 z-1000，否則 Dialog 會被側欄蓋住
-					"fixed top-1/2 left-1/2 z-1100 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-card p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+					// z-index 需高於 SpotItemsPanel 浮動側欄的 z-1000，否則 Dialog 會被側欄蓋住；
+					// max-h + overflow-y-auto：內容較長（例如場館搜尋結果展開）時 Dialog 自己捲動，
+					// 不會撐出視窗範圍
+					"fixed top-1/2 left-1/2 z-1100 max-h-[85vh] w-full max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
 					className,
 				)}
 				{...props}

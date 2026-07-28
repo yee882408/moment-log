@@ -74,7 +74,7 @@ export function VenueSearch({ onPick }: VenueSearchProps): ReactElement {
 				</Button>
 			</div>
 			{results.length > 0 && (
-				<ul className="flex flex-col gap-1">
+				<ul className="flex max-h-48 flex-col gap-1 overflow-y-auto">
 					{results.map((r) => (
 						<li key={`${r.lat},${r.lng}`}>
 							<button
