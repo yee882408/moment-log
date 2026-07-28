@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ReviewContent } from "@/components/richtext/ReviewContent";
 import { ReviewHero } from "@/components/reviews/ReviewHero";
 import { LikeButton } from "@/components/reviews/LikeButton";
+import { ReviewBookmarkButton } from "@/components/reviews/ReviewBookmarkButton";
 // import { ShareCardButton } from "@/components/reviews/ShareCardButton"; // 分享卡片功能暫不開放，見下方 JSX 註解
 import { CommentSection } from "@/components/reviews/CommentSection";
 import { AuthorReviewGrid } from "@/components/reviews/AuthorReviewGrid";
@@ -40,6 +41,7 @@ export interface RecordDetailBodyProps {
 	backLabel: string;
 	currentUserId: string | null;
 	likeState: { count: number; likedByMe: boolean };
+	bookmarkedByMe: boolean;
 	commentsPage: CommentsPage;
 	relatedReviews: PublicReview[];
 }
@@ -67,6 +69,7 @@ export function RecordDetailBody({
 	backLabel,
 	currentUserId,
 	likeState,
+	bookmarkedByMe,
 	commentsPage,
 	relatedReviews,
 }: RecordDetailBodyProps): ReactElement {
@@ -149,6 +152,23 @@ export function RecordDetailBody({
 						</Link>
 					)}
 
+					<span className="h-5 w-px bg-[#e4dcd0]" />
+
+					{currentUserId ? (
+						<ReviewBookmarkButton
+							recordId={id}
+							initialBookmarked={bookmarkedByMe}
+							disabled={!isPublic}
+						/>
+					) : (
+						<Link
+							href="/login"
+							className="text-sm text-[#7d7568] hover:text-[#18130f] hover:underline"
+						>
+							收藏（請登入）
+						</Link>
+					)}
+
 					{/* 分享卡片功能暫不開放，先隱藏入口；ShareCardButton/route handler 保留，
 					    之後要重新開放時把下面兩行取消註解即可
 					<span className="h-5 w-px bg-[#e4dcd0]" />
@@ -157,7 +177,7 @@ export function RecordDetailBody({
 				</div>
 				{!isPublic && (
 					<p className="-mt-4 text-center text-xs text-[#7d7568]">
-						🔒 這篇紀錄目前是私密的，公開後才能按讚、留言
+						🔒 這篇紀錄目前是私密的，公開後才能按讚、收藏、留言
 					</p>
 				)}
 

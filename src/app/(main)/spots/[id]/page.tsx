@@ -4,10 +4,12 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getSpotListById } from "@/lib/data/spots";
 import { getSpotListLikeState } from "@/lib/data/spotListLikes";
+import { isSpotListBookmarked } from "@/lib/data/spotListBookmarks";
 import { JsonLd } from "@/lib/seo/JsonLd";
 import { buildSpotListJsonLd } from "@/lib/seo/schemas";
 import { SpotItemsPanel } from "@/components/spots/SpotItemsPanel";
 import { SpotListLikeButton } from "@/components/spots/SpotListLikeButton";
+import { SpotListBookmarkButton } from "@/components/spots/SpotListBookmarkButton";
 import { DeleteSpotListButton } from "@/components/spots/DeleteSpotListButton";
 
 interface PageProps {
@@ -27,7 +29,10 @@ export default async function SpotListDetailPage({ params }: PageProps): Promise
 	}
 
 	const canEdit = user?.id === list.user_id;
-	const likeState = await getSpotListLikeState(id, user?.id ?? null);
+	const [likeState, bookmarkedByMe] = await Promise.all([
+		getSpotListLikeState(id, user?.id ?? null),
+		isSpotListBookmarked(id, user?.id ?? null),
+	]);
 
 	return (
 		<main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4.5 p-6">
@@ -83,6 +88,14 @@ export default async function SpotListDetailPage({ params }: PageProps): Promise
 					) : (
 						<Link href="/login" className="text-sm text-muted-foreground hover:underline">
 							讚 · {likeState.count}（請登入）
+						</Link>
+					)}
+
+					{user ? (
+						<SpotListBookmarkButton listId={list.id} initialBookmarked={bookmarkedByMe} />
+					) : (
+						<Link href="/login" className="text-sm text-muted-foreground hover:underline">
+							收藏（請登入）
 						</Link>
 					)}
 				</div>

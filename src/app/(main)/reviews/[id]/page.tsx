@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getPublicReviewById, getRelatedReviewsByArtist } from "@/lib/data/reviews";
 import { getLikeState } from "@/lib/data/likes";
+import { isRecordBookmarked } from "@/lib/data/bookmarks";
 import { getCommentsByRecordId } from "@/lib/data/comments";
 import { JsonLd } from "@/lib/seo/JsonLd";
 import { buildReviewJsonLd } from "@/lib/seo/schemas";
@@ -56,8 +57,9 @@ export default async function ReviewDetailPage({ params }: PageProps): Promise<R
 	const {
 		data: { user },
 	} = await supabase.auth.getUser();
-	const [likeState, commentsPage, relatedReviews] = await Promise.all([
+	const [likeState, bookmarkedByMe, commentsPage, relatedReviews] = await Promise.all([
 		getLikeState(id, user?.id ?? null),
+		isRecordBookmarked(id, user?.id ?? null),
 		getCommentsByRecordId(id, 1),
 		getRelatedReviewsByArtist(review.artist, id),
 	]);
@@ -85,6 +87,7 @@ export default async function ReviewDetailPage({ params }: PageProps): Promise<R
 				backLabel="← 返回心得分享"
 				currentUserId={user?.id ?? null}
 				likeState={likeState}
+				bookmarkedByMe={bookmarkedByMe}
 				commentsPage={commentsPage}
 				relatedReviews={relatedReviews}
 			/>

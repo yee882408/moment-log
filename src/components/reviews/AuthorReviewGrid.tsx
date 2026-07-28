@@ -14,6 +14,7 @@ interface AuthorReviewCardItem extends ReviewCardItem {
 
 interface AuthorReviewGridProps<T extends AuthorReviewCardItem> {
 	reviews: T[];
+	gridClassName?: string;
 }
 
 // ReviewGrid 的 buildHref/renderFooter 是函式 prop，"use client" 元件不能從
@@ -23,10 +24,12 @@ interface AuthorReviewGridProps<T extends AuthorReviewCardItem> {
 // 呼叫端只需要傳資料，不需要傳函式
 export function AuthorReviewGrid<T extends AuthorReviewCardItem>({
 	reviews,
+	gridClassName,
 }: AuthorReviewGridProps<T>): ReactElement {
 	return (
 		<ReviewGrid
 			reviews={reviews}
+			gridClassName={gridClassName}
 			buildHref={(r) => `/reviews/${r.id}`}
 			renderFooter={(r) => (
 				<>

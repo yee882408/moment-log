@@ -41,6 +41,8 @@ interface ReviewGridProps<T extends ReviewCardItem> {
 	// 卡片底部區塊，由呼叫端決定要顯示公開標籤還是作者資訊（可能自帶另一個 <Link>，
 	// 所以這塊獨立在主連結之外，避免 <a> 巢狀 <a>）
 	renderFooter?: (item: T) => ReactNode;
+	// grid 容器 class 覆寫；預設 3 欄，/bookmarks 首頁預覽只有 4 筆時用 2 欄排成 2x2 方陣
+	gridClassName?: string;
 }
 
 interface HoverCardProps<T extends ReviewCardItem> {
@@ -183,9 +185,10 @@ export function ReviewGrid<T extends ReviewCardItem>({
 	reviews,
 	buildHref,
 	renderFooter,
+	gridClassName = "grid grid-cols-1 gap-4 lg:grid-cols-3",
 }: ReviewGridProps<T>): ReactElement {
 	return (
-		<div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+		<div className={gridClassName}>
 			{reviews.map((item) => (
 				<HoverCard
 					key={item.id}

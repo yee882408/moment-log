@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getRecordById } from "@/lib/data/records";
 import { getRelatedReviewsByArtist } from "@/lib/data/reviews";
 import { getLikeState } from "@/lib/data/likes";
+import { isRecordBookmarked } from "@/lib/data/bookmarks";
 import { getCommentsByRecordId } from "@/lib/data/comments";
 import { DeleteRecordButton } from "@/components/concerts/DeleteRecordButton";
 import { RecordDetailBody } from "@/components/reviews/RecordDetailBody";
@@ -33,8 +34,9 @@ export default async function RecordDetailPage({
 
 	// 讚/留言只可能發生在公開紀錄上（RLS 擋私密紀錄 insert），私密紀錄查這些
 	// 一定是空結果；相關心得同理只查公開紀錄，私密紀錄不需要查（也沒有意義）
-	const [likeState, commentsPage, relatedReviews] = await Promise.all([
+	const [likeState, bookmarkedByMe, commentsPage, relatedReviews] = await Promise.all([
 		getLikeState(id, user.id),
+		isRecordBookmarked(id, user.id),
 		getCommentsByRecordId(id, 1),
 		record.is_public ? getRelatedReviewsByArtist(record.artist, id) : Promise.resolve([]),
 	]);
@@ -62,6 +64,7 @@ export default async function RecordDetailPage({
 			backLabel="← 返回列表"
 			currentUserId={user.id}
 			likeState={likeState}
+			bookmarkedByMe={bookmarkedByMe}
 			commentsPage={commentsPage}
 			relatedReviews={relatedReviews}
 			topbarActions={

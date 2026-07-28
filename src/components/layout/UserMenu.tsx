@@ -51,6 +51,9 @@ export function UserMenu({ email, displayName, avatarUrl }: UserMenuProps): Reac
 				<DropdownMenuItem asChild>
 					<Link href="/profile">個人檔案</Link>
 				</DropdownMenuItem>
+				<DropdownMenuItem asChild>
+					<Link href="/bookmarks">我的收藏</Link>
+				</DropdownMenuItem>
 				<DropdownMenuSeparator />
 				<DropdownMenuItem onSelect={() => signOut()}>登出</DropdownMenuItem>
 			</DropdownMenuContent>

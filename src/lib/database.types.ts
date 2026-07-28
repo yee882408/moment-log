@@ -286,27 +286,76 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           display_name: string
+          failed_login_count: number
           id: string
           is_banned: boolean
+          locked_until: string | null
           role: string
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string
           display_name: string
+          failed_login_count?: number
           id: string
           is_banned?: boolean
+          locked_until?: string | null
           role?: string
         }
         Update: {
           avatar_url?: string | null
           created_at?: string
           display_name?: string
+          failed_login_count?: number
           id?: string
           is_banned?: boolean
+          locked_until?: string | null
           role?: string
         }
         Relationships: []
+      }
+      record_bookmarks: {
+        Row: {
+          created_at: string
+          id: string
+          record_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          record_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          record_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "record_bookmarks_record_id_fkey"
+            columns: ["record_id"]
+            isOneToOne: false
+            referencedRelation: "concert_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "record_bookmarks_record_id_fkey"
+            columns: ["record_id"]
+            isOneToOne: false
+            referencedRelation: "concert_records_with_like_count"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "record_bookmarks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       record_comments: {
         Row: {
@@ -428,6 +477,49 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "saved_routes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spot_list_bookmarks: {
+        Row: {
+          created_at: string
+          id: string
+          list_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          list_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          list_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spot_list_bookmarks_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "spot_lists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spot_list_bookmarks_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "spot_lists_with_item_count"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spot_list_bookmarks_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -600,6 +692,7 @@ export type Database = {
           like_count: number | null
           rating: number | null
           review: string | null
+          search_vector: unknown
           seat_info: string | null
           spotify_playlist_id: string | null
           template_id: string | null
@@ -623,6 +716,7 @@ export type Database = {
           like_count?: never
           rating?: number | null
           review?: string | null
+          search_vector?: unknown
           seat_info?: string | null
           spotify_playlist_id?: string | null
           template_id?: string | null
@@ -646,6 +740,7 @@ export type Database = {
           like_count?: never
           rating?: number | null
           review?: string | null
+          search_vector?: unknown
           seat_info?: string | null
           spotify_playlist_id?: string | null
           template_id?: string | null
@@ -740,6 +835,7 @@ export type Database = {
         Args: { new_role: string; target_id: string }
         Returns: undefined
       }
+      custom_access_token_hook: { Args: { event: Json }; Returns: Json }
       get_monthly_record_counts: {
         Args: never
         Returns: {
@@ -749,7 +845,16 @@ export type Database = {
       }
       is_admin: { Args: never; Returns: boolean }
       is_current_user_banned: { Args: never; Returns: boolean }
+      is_login_locked: { Args: { target_email: string }; Returns: boolean }
       record_is_public: { Args: { p_record_id: string }; Returns: boolean }
+      register_login_failure: {
+        Args: { secret: string; target_email: string }
+        Returns: undefined
+      }
+      reset_login_failure: {
+        Args: { secret: string; target_email: string }
+        Returns: undefined
+      }
       search_concert_records: {
         Args: {
           p_keyword: string

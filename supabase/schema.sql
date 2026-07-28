@@ -240,6 +240,19 @@ create table public.record_likes (
 create index record_likes_record_idx on public.record_likes (record_id);
 create index record_likes_user_idx on public.record_likes (user_id);
 
+-- record_bookmarks：收藏心得，跟 record_likes 同構，但收藏是私人行為不公開曝光、
+-- 也不顯示數量，所以只需要「依 user_id 依時間排序分頁」這個查詢型態，
+-- 用複合 index 直接涵蓋（同時滿足純 user_id 等值查詢，不需要再建單欄 user_id index）
+create table public.record_bookmarks (
+	id uuid primary key default gen_random_uuid(),
+	user_id uuid not null references public.profiles(id) on delete cascade,
+	record_id uuid not null references public.concert_records(id) on delete cascade,
+	created_at timestamptz not null default now(),
+	unique (user_id, record_id)
+);
+create index record_bookmarks_user_created_idx on public.record_bookmarks (user_id, created_at desc);
+create index record_bookmarks_record_idx on public.record_bookmarks (record_id);
+
 -- record_comments：對公開心得留言，不審核、只有作者本人可刪
 create table public.record_comments (
 	id uuid primary key default gen_random_uuid(),
@@ -302,6 +315,7 @@ $$;
 -- 7. 開啟 RLS
 -- ------------------------------------------------------------
 alter table public.record_likes enable row level security;
+alter table public.record_bookmarks enable row level security;
 alter table public.record_comments enable row level security;
 alter table public.follows enable row level security;
 alter table public.tags enable row level security;
@@ -365,6 +379,23 @@ create policy "likes_insert_own_on_public_record"
 -- delete：只能取消自己的讚（紀錄事後變私密，仍允許收回自己的讚）
 create policy "likes_delete_own"
 	on public.record_likes for delete
+	using (auth.uid() = user_id);
+
+-- record_bookmarks ------------------------------------------------
+-- select：與 record_likes 的關鍵差異——收藏是私人行為，只有本人能看到自己收藏了什麼，
+-- 不像讚那樣對公開紀錄開放給任何人查（沒有「被收藏數」這種公開聚合需求）
+create policy "record_bookmarks_select_own"
+	on public.record_bookmarks for select
+	using (auth.uid() = user_id);
+
+-- insert：只能用自己的身分收藏，且該紀錄必須是公開的（沿用跟 likes 一致的可見性判斷）
+create policy "record_bookmarks_insert_own"
+	on public.record_bookmarks for insert
+	with check (auth.uid() = user_id and public.record_is_public(record_id));
+
+-- delete：只能取消自己的收藏
+create policy "record_bookmarks_delete_own"
+	on public.record_bookmarks for delete
 	using (auth.uid() = user_id);
 
 -- record_comments ----------------------------------------------
@@ -816,6 +847,33 @@ create policy "spot_list_likes_insert_own"
 -- 刪除：只能刪自己的讚
 create policy "spot_list_likes_delete_own"
 	on public.spot_list_likes for delete
+	using (auth.uid() = user_id);
+
+-- spot_list_bookmarks：收藏追星地圖清單，比照 record_bookmarks 的設計
+-- （私人行為，select 只能查自己的，不像 spot_list_likes 對外開放可見清單的讚）
+create table public.spot_list_bookmarks (
+	id uuid primary key default gen_random_uuid(),
+	user_id uuid not null references public.profiles(id) on delete cascade,
+	list_id uuid not null references public.spot_lists(id) on delete cascade,
+	created_at timestamptz not null default now(),
+	unique (user_id, list_id)
+);
+create index spot_list_bookmarks_user_created_idx on public.spot_list_bookmarks (user_id, created_at desc);
+create index spot_list_bookmarks_list_idx on public.spot_list_bookmarks (list_id);
+
+alter table public.spot_list_bookmarks enable row level security;
+
+create policy "spot_list_bookmarks_select_own"
+	on public.spot_list_bookmarks for select
+	using (auth.uid() = user_id);
+
+-- insert：只能對「自己看得到的清單」收藏（公開清單或自己的清單），且只能用自己的 user_id
+create policy "spot_list_bookmarks_insert_own"
+	on public.spot_list_bookmarks for insert
+	with check (auth.uid() = user_id and public.spot_list_is_visible(list_id));
+
+create policy "spot_list_bookmarks_delete_own"
+	on public.spot_list_bookmarks for delete
 	using (auth.uid() = user_id);
 
 -- 清單 + 地點數量 + 讚數 view：/spots 列表卡片顯示用，避免對每筆清單各查一次 count（N+1）

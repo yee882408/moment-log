@@ -30,7 +30,6 @@ export default async function SpotsPage({ searchParams }: PageProps): Promise<Re
 			<div className="flex items-center justify-between">
 				<div>
 					<span className="mb-1 flex items-center gap-2 text-xs font-bold tracking-[0.14em] text-primary uppercase">
-						<span className="h-px w-4.5 bg-primary" />
 						追星足跡地圖
 					</span>
 					<h1 className="text-2xl leading-tight font-semibold tracking-tight text-foreground">
