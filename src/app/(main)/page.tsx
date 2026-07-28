@@ -68,7 +68,11 @@ export default async function Home(): Promise<ReactElement> {
 				{topReview && <HeroFeaturedReview review={topReview} />}
 			</section>
 
-			<section className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-6 pt-4 pb-16">
+			<div className="mx-auto w-full max-w-5xl px-6">
+				<div className="border-t border-border" />
+			</div>
+
+			<section className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-6 pt-10 pb-16">
 				{/* <div className="text-center">
 					<h2 className="text-lg font-semibold text-foreground">能做什麼</h2>
 				</div> */}
@@ -96,7 +100,13 @@ export default async function Home(): Promise<ReactElement> {
 			</section>
 
 			{featuredReviews.length > 0 && (
-				<section className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 pb-20">
+				<div className="mx-auto w-full max-w-5xl px-6">
+					<div className="border-t border-border" />
+				</div>
+			)}
+
+			{featuredReviews.length > 0 && (
+				<section className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 pt-10 pb-20">
 					<div className="flex items-center justify-between">
 						<h2 className="text-lg font-semibold text-foreground">熱門心得</h2>
 						<Button asChild variant="secondary" className="text-sm">
