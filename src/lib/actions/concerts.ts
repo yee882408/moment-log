@@ -7,7 +7,7 @@ import { concertSchema, type ConcertInput } from "@/lib/validation/concert";
 import { isCurrentUserAdmin } from "@/lib/data/profile";
 import { toGenericActionError, type ActionResult } from "@/lib/actions/types";
 
-// 驗證 + 取座標；回傳 ok 的資料或錯誤。範本座標必填
+// 驗證；回傳 ok 的資料或錯誤。座標欄位已從表單移除，僅供既有資料 round-trip，選填
 function validate(input: ConcertInput):
 	| { ok: true; row: ConcertRowInput }
 	| { ok: false; error: string } {
@@ -16,17 +16,14 @@ function validate(input: ConcertInput):
 		return { ok: false, error: "資料格式錯誤" };
 	}
 	const v = parsed.data;
-	if (v.venueLat == null || v.venueLng == null) {
-		return { ok: false, error: "請搜尋並選擇場館以取得座標" };
-	}
 	return {
 		ok: true,
 		row: {
 			title: v.title,
 			artist: v.artist,
 			venue_name: v.venueName,
-			venue_lat: v.venueLat,
-			venue_lng: v.venueLng,
+			venue_lat: v.venueLat ?? null,
+			venue_lng: v.venueLng ?? null,
 			date: v.date,
 		},
 	};
@@ -37,8 +34,8 @@ interface ConcertRowInput {
 	title: string;
 	artist: string;
 	venue_name: string;
-	venue_lat: number;
-	venue_lng: number;
+	venue_lat: number | null;
+	venue_lng: number | null;
 	date: string;
 }
 
