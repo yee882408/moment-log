@@ -17,16 +17,18 @@ interface PageProps {
 export default async function ReviewsPage({ searchParams }: PageProps): Promise<ReactElement> {
 	const params = await searchParams;
 	const state = parseSearchStateFromServerParams(params, "newest");
-	const initialTags = await getTagsByIds(state.tagIds);
-
-	const { reviews, totalPages } = await getPublicReviews(
-		state.page,
-		{
-			keyword: state.keyword || undefined,
-			tagIds: state.tagIds.length ? state.tagIds : undefined,
-		},
-		state.sort as PublicReviewSort
-	);
+	// 標籤名稱與心得列表彼此獨立，平行查詢減少一輪網路往返
+	const [initialTags, { reviews, totalPages }] = await Promise.all([
+		getTagsByIds(state.tagIds),
+		getPublicReviews(
+			state.page,
+			{
+				keyword: state.keyword || undefined,
+				tagIds: state.tagIds.length ? state.tagIds : undefined,
+			},
+			state.sort as PublicReviewSort
+		),
+	]);
 
 	return (
 		<main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-6">

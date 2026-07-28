@@ -30,24 +30,26 @@ export async function searchConcertRecordIds(
 	const from = (page - 1) * pageSize;
 	const rpcTagIds = tagIds?.length ? tagIds : undefined;
 
-	const { data: rankedIds, error: rpcError } = await supabase.rpc("search_concert_records", {
-		p_keyword: keyword,
-		p_user_id: userId,
-		p_public_only: publicOnly,
-		p_tag_ids: rpcTagIds,
-		p_limit: pageSize,
-		p_offset: from,
-	});
+	// id 清單與總數彼此獨立，平行送出減少一輪網路往返
+	const [{ data: rankedIds, error: rpcError }, { data: totalCount, error: countError }] = await Promise.all([
+		supabase.rpc("search_concert_records", {
+			p_keyword: keyword,
+			p_user_id: userId,
+			p_public_only: publicOnly,
+			p_tag_ids: rpcTagIds,
+			p_limit: pageSize,
+			p_offset: from,
+		}),
+		supabase.rpc("search_concert_records_count", {
+			p_keyword: keyword,
+			p_user_id: userId,
+			p_public_only: publicOnly,
+			p_tag_ids: rpcTagIds,
+		}),
+	]);
 	if (rpcError) {
 		throw new Error(`搜尋失敗：${rpcError.message}`);
 	}
-
-	const { data: totalCount, error: countError } = await supabase.rpc("search_concert_records_count", {
-		p_keyword: keyword,
-		p_user_id: userId,
-		p_public_only: publicOnly,
-		p_tag_ids: rpcTagIds,
-	});
 	if (countError) {
 		throw new Error(`搜尋失敗：${countError.message}`);
 	}
