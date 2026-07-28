@@ -1,6 +1,7 @@
 import type { ReactElement } from "react";
 import Link from "next/link";
-import { Button } from "@/components/ui/Button";
+import { buildPageItems } from "@/lib/pagination";
+import { cn } from "@/lib/utils";
 
 interface PaginationProps {
 	currentPage: number;
@@ -9,38 +10,72 @@ interface PaginationProps {
 	buildHref: (page: number) => string;
 }
 
-// 純展示用的頁碼式分頁列，靠 <Link> 換頁（不需要 client state）
-export function Pagination({
-	currentPage,
-	totalPages,
-	buildHref,
-}: PaginationProps): ReactElement | null {
+// 純展示用的數字頁碼列，靠 <Link> 換頁（不需要 client state），
+// 視覺跟 PaginationControls（client state 換頁）共用同一套數字頁碼列排版
+export function Pagination({ currentPage, totalPages, buildHref }: PaginationProps): ReactElement | null {
 	if (totalPages <= 1) {
 		return null;
 	}
 
+	const items = buildPageItems(currentPage, totalPages);
+
 	return (
-		<nav data-slot="pagination" className="flex items-center justify-center gap-2" aria-label="分頁">
+		<nav data-slot="pagination" className="flex items-center justify-center gap-1" aria-label="分頁">
 			{currentPage > 1 ? (
-				<Button asChild variant="secondary">
-					<Link href={buildHref(currentPage - 1)}>← 上一頁</Link>
-				</Button>
+				<Link
+					href={buildHref(currentPage - 1)}
+					aria-label="上一頁"
+					className="flex h-8 w-8 items-center justify-center rounded-lg text-sm text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
+				>
+					←
+				</Link>
 			) : (
-				<Button asChild variant="secondary" className="pointer-events-none opacity-50">
-					<span aria-disabled="true">← 上一頁</span>
-				</Button>
+				<span
+					aria-disabled="true"
+					className="flex h-8 w-8 items-center justify-center rounded-lg text-sm text-muted-foreground opacity-40"
+				>
+					←
+				</span>
 			)}
-			<span className="text-sm text-muted-foreground">
-				第 {currentPage} / {totalPages} 頁
-			</span>
+
+			{items.map((item, i) =>
+				typeof item === "number" ? (
+					<Link
+						key={item}
+						href={buildHref(item)}
+						aria-label={`第 ${item} 頁`}
+						aria-current={item === currentPage ? "page" : undefined}
+						className={cn(
+							"flex h-8 min-w-8 items-center justify-center rounded-lg px-2 text-sm transition-colors",
+							item === currentPage
+								? "bg-primary font-medium text-primary-foreground"
+								: "text-foreground hover:bg-background",
+						)}
+					>
+						{item}
+					</Link>
+				) : (
+					<span key={`${item}-${i}`} className="flex h-8 w-8 items-center justify-center text-sm text-muted-foreground">
+						…
+					</span>
+				),
+			)}
+
 			{currentPage < totalPages ? (
-				<Button asChild variant="secondary">
-					<Link href={buildHref(currentPage + 1)}>下一頁 →</Link>
-				</Button>
+				<Link
+					href={buildHref(currentPage + 1)}
+					aria-label="下一頁"
+					className="flex h-8 w-8 items-center justify-center rounded-lg text-sm text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
+				>
+					→
+				</Link>
 			) : (
-				<Button asChild variant="secondary" className="pointer-events-none opacity-50">
-					<span aria-disabled="true">下一頁 →</span>
-				</Button>
+				<span
+					aria-disabled="true"
+					className="flex h-8 w-8 items-center justify-center rounded-lg text-sm text-muted-foreground opacity-40"
+				>
+					→
+				</span>
 			)}
 		</nav>
 	);
