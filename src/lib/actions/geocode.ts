@@ -11,7 +11,7 @@ export async function searchVenues(query: string): Promise<VenueResult[]> {
 
 	const url =
 		"https://nominatim.openstreetmap.org/search" +
-		`?q=${encodeURIComponent(q)}&format=json&limit=5`;
+		`?q=${encodeURIComponent(q)}&format=json&limit=8&countrycodes=tw&accept-language=zh-TW`;
 
 	const res = await fetch(url, {
 		headers: {
