@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { KeyboardEvent, ReactElement } from "react";
 import { X } from "lucide-react";
 import { useTagSearch } from "@/lib/hooks/useTagSearch";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
 
@@ -57,9 +57,16 @@ export function TagInput({ value, onChange, id }: TagInputProps): ReactElement {
 	// 建議清單濾掉已經選過的標籤名稱
 	const suggestions = results.filter((t) => !value.includes(t.name));
 
+	// open 只反映「使用者是否想要看到下拉選單」（focus/打字時設 true），不疊加
+	// loading/suggestions 條件：查詢是透過 setTimeout 非同步觸發的，useTagSearch
+	// 剛被 enabled 的當下 loading 還沒來得及變 true、results 也還是舊的空陣列，
+	// 若 open 條件疊加這兩者，會在查詢真正開始前的那個瞬間先計算出 false，
+	// 導致 Popover 先關閉、查詢一開始又打開，肉眼看到閃爍。內容區（loading
+	// 中顯示 spinner）已經處理了「查詢還沒回來」的過渡狀態，不需要靠關閉
+	// Popover 來隱藏這段空窗期
 	return (
-		<Popover open={open && (loading || suggestions.length > 0)} onOpenChange={setOpen}>
-			<PopoverTrigger asChild>
+		<Popover open={open} onOpenChange={setOpen}>
+			<PopoverAnchor asChild>
 				<div
 					className={cn(
 						"flex w-full flex-wrap items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm",
@@ -97,7 +104,7 @@ export function TagInput({ value, onChange, id }: TagInputProps): ReactElement {
 						/>
 					)}
 				</div>
-			</PopoverTrigger>
+			</PopoverAnchor>
 			<PopoverContent
 				className="w-(--radix-popover-trigger-width) p-1"
 				onOpenAutoFocus={(e) => e.preventDefault()}
@@ -106,7 +113,7 @@ export function TagInput({ value, onChange, id }: TagInputProps): ReactElement {
 					<div className="flex justify-center py-2">
 						<Spinner />
 					</div>
-				) : (
+				) : suggestions.length > 0 ? (
 					suggestions.map((tag) => (
 						<button
 							key={tag.id}
@@ -117,6 +124,8 @@ export function TagInput({ value, onChange, id }: TagInputProps): ReactElement {
 							{tag.name}
 						</button>
 					))
+				) : (
+					<p className="px-3 py-2 text-xs text-muted-foreground">沒有符合的標籤建議</p>
 				)}
 			</PopoverContent>
 		</Popover>

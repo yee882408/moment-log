@@ -12,6 +12,10 @@ function PopoverTrigger(props: ComponentProps<typeof PopoverPrimitive.Trigger>):
 	return <PopoverPrimitive.Trigger data-slot="popover-trigger" {...props} />;
 }
 
+function PopoverAnchor(props: ComponentProps<typeof PopoverPrimitive.Anchor>): ReactElement {
+	return <PopoverPrimitive.Anchor data-slot="popover-anchor" {...props} />;
+}
+
 function PopoverContent({
 	className,
 	align = "start",
@@ -36,4 +40,4 @@ function PopoverContent({
 	);
 }
 
-export { Popover, PopoverTrigger, PopoverContent };
+export { Popover, PopoverTrigger, PopoverAnchor, PopoverContent };
